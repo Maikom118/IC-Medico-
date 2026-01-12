@@ -1,124 +1,40 @@
-# IC-Medico-
-Iniciação cientifica/ projeto para um medico 
-🧠📋 Plataforma Médica Inteligente para Otimização do Atendimento Clínico
-📌 Descrição do Projeto
+🧠 Plataforma Médica com Inteligência Artificial
+📌 Sobre o Projeto
 
-Este repositório faz parte de uma Iniciação Científica que tem como objetivo o desenvolvimento de uma plataforma médica inteligente, utilizando Inteligência Artificial (IA) para otimizar o fluxo de atendimento, auxiliar o médico durante a consulta e automatizar tarefas clínicas, permitindo mais foco no paciente e maior eficiência no atendimento.
+Este repositório faz parte de uma Iniciação Científica que propõe o desenvolvimento de uma plataforma médica inteligente, utilizando Inteligência Artificial (IA) para otimizar o fluxo de atendimento e auxiliar o médico durante a consulta clínica.
 
-A proposta integra tecnologia e saúde, oferecendo suporte à tomada de decisão médica, organização de informações clínicas e melhoria da experiência tanto do profissional quanto do paciente.
+A solução busca reduzir tarefas operacionais, organizar dados clínicos e oferecer suporte inteligente ao profissional de saúde.
 
-🎯 Objetivo Geral
+🎯 Objetivo
 
-Desenvolver uma solução baseada em Inteligência Artificial capaz de melhorar o fluxo de atendimento médico, reduzindo tempo operacional, aumentando a organização das informações clínicas e oferecendo suporte inteligente durante a consulta médica.
+Aplicar IA como ferramenta de apoio à decisão médica, melhorando a eficiência do atendimento, a organização das informações do paciente e o tempo de consulta.
 
-🎯 Objetivos Específicos
-
-Automatizar a organização e visualização de dados dos pacientes
-
-Auxiliar o médico na criação de laudos clínicos
-
-Integrar IA conversacional para suporte durante a consulta
-
-Permitir o anexo de exames, imagens e documentos médicos
-
-Otimizar o tempo de consulta e reduzir tarefas repetitivas
-
-Exportar laudos e relatórios em PDF
-
-Melhorar a experiência do atendimento médico por meio da tecnologia
-
-🏥 Problema de Pesquisa
-
-Médicos enfrentam diariamente:
-
-Sobrecarga de atendimentos
-
-Falta de tempo para registro detalhado das consultas
-
-Sistemas fragmentados e pouco inteligentes
-
-Processos manuais que aumentam o tempo da consulta
-
-Este projeto busca responder à seguinte questão:
-
-Como a Inteligência Artificial pode melhorar o fluxo de atendimento médico e auxiliar o profissional de saúde durante a consulta clínica?
-
-🤖 Uso da Inteligência Artificial
-
-A IA será utilizada para:
-
-💬 IA Conversacional: apoio ao médico durante a consulta (sugestões, organização de informações)
-
-📝 Auxílio na criação de laudos médicos
-
-🔍 Organização inteligente de dados clínicos
-
-🎧 (Opcional) Entrada de dados via áudio (transcrição)
-
-⚠️ A IA não substitui o médico, atuando apenas como ferramenta de apoio à decisão clínica.
-
-🧩 Funcionalidades Esperadas
+🤖 Funcionalidades Principais
 
 Cadastro e visualização de pacientes
 
-Campos estruturados para dados clínicos
+Criação e exportação de laudos em PDF
 
-Upload de imagens e exames
+Anexo de exames e imagens
 
-Geração automática de laudos
+IA conversacional para apoio durante a consulta
 
-Exportação de laudos em PDF
+Organização inteligente de dados clínicos
 
-Interface intuitiva e focada no médico
+⚠️ A IA atua apenas como suporte, não substituindo o médico.
 
-Integração com IA para suporte à consulta
+🛠️ Tecnologias (Previstas)
 
-🛠️ Tecnologias Utilizadas (Previstas)
+Front-end: HTML, CSS, JavaScript
 
-Front-end: HTML, CSS, JavaScript (ou framework moderno)
+Back-end: Node.js / Python / Java
 
-Back-end: Node.js / Python / Java (a definir)
+Banco de Dados
 
-Banco de Dados: Relacional ou NoSQL
+Inteligência Artificial (NLP)
 
-IA: Modelos de linguagem (NLP)
+Git & GitHub
 
-PDF: Geração automatizada de documentos
-
-Versionamento: Git & GitHub
-
-📊 Metodologia
-
-Pesquisa bibliográfica sobre IA aplicada à saúde
-
-Levantamento de requisitos com foco no fluxo médico
-
-Desenvolvimento incremental da plataforma
-
-Testes funcionais e validação do fluxo de atendimento
-
-Análise dos ganhos em eficiência e usabilidade
-
-📚 Área de Estudo
-
-Inteligência Artificial
-
-Sistemas de Informação em Saúde
-
-Informática Médica
-
-Engenharia de Software
-
-Interação Humano-Computador (IHC)
-
-👨‍⚕️ Público-Alvo
-
-Médicos clínicos e especialistas
-
-Profissionais da área da saúde
-
-Pesquisadores em tecnologia aplicada à medicina
-
-📌 Status do Projeto
+📌 Status
 
 🚧 Em desenvolvimento — Iniciação Científica
