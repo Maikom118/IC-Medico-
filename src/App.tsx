@@ -107,19 +107,19 @@ export default function App() {
               <span>Dashboard</span>
             </button>
 <button
-              onClick={() => {
-                setCurrentView("registration");
-                //closeSidebarOnMobile();
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "registration"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
-            >
-              <UserPlus size={20} className="flex-shrink-0" />
-              <span>Cadastro</span>
-            </button>
+  onClick={() => {
+    setCurrentView("registration");
+  }}
+  className={`w-full h-12 flex items-center gap-3 px-4 rounded-lg transition-colors ${
+    currentView === "registration"
+      ? "bg-blue-700"
+      : "hover:bg-blue-500"
+  }`}
+>
+  <UserPlus size={20} className="flex-shrink-0" />
+  <span className="leading-none">Cadastro</span>
+</button>
+
 
             <button
               onClick={() => setCurrentView("patients")}

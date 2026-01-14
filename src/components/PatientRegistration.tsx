@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
+
 type Patient = {
   id: string;
   fullName: string;
@@ -34,6 +35,38 @@ export function PatientRegistration() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  /* =========================
+     🔥 OCR – BUSCA NA API
+     ========================= */
+  async function fetchRGFromAPI() {
+    try {
+      const response = await fetch('http://localhost:8000/api/rg/ultimo');
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      setFormData({
+        fullName: data.nome || '',
+        rg: data.rg || '',
+        cpf: data.cpf || '',
+        birthDate: data.data_nascimento
+          ? data.data_nascimento.split('/').reverse().join('-')
+          : '',
+        rgPhoto: '',
+      });
+    } catch (err) {
+      console.warn('OCR indisponível:', err);
+    }
+  }
+
+  /* 🔄 Dispara OCR automaticamente ao criar */
+  useEffect(() => {
+    if (mode === 'create') {
+      fetchRGFromAPI();
+    }
+  }, [mode]);
+
 
   // Validação de CPF
   const validateCPF = (cpf: string): boolean => {
