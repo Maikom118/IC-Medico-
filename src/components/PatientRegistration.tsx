@@ -634,23 +634,28 @@ async function sendRGToOCR() {
  <button
   type="button"
   onClick={sendRGToOCR}
-  //  disabled={!rgFile}
+  disabled={!formData.rgPhoto}
   className={`
-    flex items-center justify-center gap-2
+   flex items-center justify-center gap-2
     px-5 py-3
     rounded-xl
     shadow-lg
     transition-all
-    ${rgFile
+    ${formData.rgPhoto
       ? 'bg-green-600 hover:bg-green-700 text-white'
       : 'bg-gray-400 cursor-not-allowed text-gray-700'}
+
+    ${formData.rgPhoto
+      ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-700'
+      : 'bg-gray-300 text-gray-600 cursor-not-allowed border border-gray-300'}
   `}
 >
   <Upload size={20} />
-  <span className="text-sm font-semibold">
-    {rgFile ? 'Ler RG' : 'Nenhuma imagem'}
+  <span className="text-sm">
+    {formData.rgPhoto ? 'Ler RG' : 'Nenhuma imagem Selecionada'}
   </span>
 </button>
+
 
 
 </div>
