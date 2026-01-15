@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { CameraRG } from "./CameraRG";
+
 // import { Buffer } from 'buffer'; // Importing Buffer from 'buffer' only if needed
 
 
@@ -19,8 +21,11 @@ export function PatientRegistration() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [mode, setMode] = useState<FormMode>('list');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+const [isCameraOpen, setIsCameraOpen] = useState(false);
+const [showCamera, setShowCamera] = useState(false);
+
+
+
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [rgFile, setRgFile] = useState<File | null>(null);
@@ -35,8 +40,7 @@ export function PatientRegistration() {
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+ 
 
 
   //converte Base64 para file
@@ -229,56 +233,7 @@ async function sendRGToOCR() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Iniciar câmera
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      });
-      
-      setCameraStream(stream);
-      setShowCamera(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Erro ao acessar câmera:', error);
-      alert('Não foi possível acessar a câmera. Verifique as permissões ou use o upload de arquivo.');
-    }
-  };
-
-  // Parar câmera
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-    setShowCamera(false);
-  };
-
-  // Capturar foto
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
-        
-        const photoData = canvas.toDataURL('image/jpeg', 0.8);
-        setFormData({ ...formData, rgPhoto: photoData });
-        stopCamera();
-      }
-    }
-  };
+  
 
   // Upload de foto
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,7 +315,7 @@ async function sendRGToOCR() {
     p.rg.includes(searchTerm)
   );
 
-  // Cleanup camera on unmount
+  /* Cleanup camera on unmount
   useEffect(() => {
     return () => {
       if (cameraStream) {
@@ -368,6 +323,7 @@ async function sendRGToOCR() {
       }
     };
   }, [cameraStream]);
+*/
 
   // Lista de pacientes
   if (mode === 'list') {
@@ -600,13 +556,16 @@ async function sendRGToOCR() {
       </button>
     </div>
   )}
+  
+
 
   {/* Botões */}
   <div className="flex flex-col sm:flex-row gap-3">
     {/* Tirar foto */}
     {!formData.rgPhoto && (
       <button
-        onClick={startCamera}
+       onClick={() => setShowCamera(true)}
+
         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
       >
         <Camera size={20} className="text-gray-600" />
@@ -759,89 +718,18 @@ async function sendRGToOCR() {
         </div>
       </div>
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          {/* Camera View */}
-          <div className="flex-1 relative overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            
-            {/* Guia Retangular para RG */}
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="relative w-full max-w-md aspect-[16/10]">
-                {/* Overlay escuro */}
-                <div className="absolute inset-0">
-                  <svg width="100%" height="100%" className="absolute inset-0">
-                    <defs>
-                      <mask id="guideMask">
-                        <rect width="100%" height="100%" fill="white" />
-                        <rect
-                          x="5%"
-                          y="5%"
-                          width="90%"
-                          height="90%"
-                          rx="12"
-                          fill="black"
-                        />
-                      </mask>
-                    </defs>
-                    <rect
-                      width="100%"
-                      height="100%"
-                      fill="rgba(0, 0, 0, 0.6)"
-                      mask="url(#guideMask)"
-                    />
-                  </svg>
-                </div>
-                
-                {/* Bordas do guia */}
-                <div className="absolute inset-0 m-[5%] border-4 border-white rounded-xl shadow-lg">
-                  {/* Cantos */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 -translate-x-1 -translate-y-1 rounded-tl-xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 translate-x-1 -translate-y-1 rounded-tr-xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 -translate-x-1 translate-y-1 rounded-bl-xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 translate-x-1 translate-y-1 rounded-br-xl" />
-                </div>
-              </div>
-            </div>
+     
 
-            {/* Instruções */}
-            <div className="absolute top-4 left-0 right-0 flex justify-center px-4">
-              <div className="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm text-center">
-                Posicione o RG dentro do retângulo
-              </div>
-            </div>
-          </div>
+         
+         <CameraRG
+  open={showCamera}
+  onClose={() => setShowCamera(false)}
+  formData={formData}
+  setFormData={setFormData}
+/>
 
-          {/* Controls */}
-          <div className="bg-black p-4 flex items-center justify-between gap-4">
-            <button
-              onClick={stopCamera}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              <X size={20} />
-              <span className="hidden sm:inline">Cancelar</span>
-            </button>
-            
-            <button
-              onClick={capturePhoto}
-              className="flex items-center justify-center w-16 h-16 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-lg"
-            >
-              <div className="w-14 h-14 border-4 border-gray-800 rounded-full" />
-            </button>
-            
-            <div className="w-20" /> {/* Spacer for symmetry */}
-          </div>
-
-          {/* Hidden canvas for capture */}
-          <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
-    </div>
-  );
-}
+    
+  
+
