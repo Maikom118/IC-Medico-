@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
+// import { Buffer } from 'buffer'; // Importing Buffer from 'buffer' only if needed
 
 
 type Patient = {
@@ -12,7 +13,7 @@ type Patient = {
   registrationDate: Date;
 };
 
-type FormMode = 'list' | 'create' | 'edit';
+type FormMode = 'list' | 'create' | 'edit'| 'ocr';
 
 export function PatientRegistration() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -22,6 +23,7 @@ export function PatientRegistration() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
+  const [rgFile, setRgFile] = useState<File | null>(null);
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -36,36 +38,114 @@ export function PatientRegistration() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+
+  //converte Base64 para file
+function ensureFile(photo: File | string): File {
+  if (photo instanceof File) {
+    return photo;
+  }
+
+  // se vier base64 (camera)
+  const arr = photo.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], 'rg.jpg', { type: mime });
+}
+
+
+
+async function sendRGToOCR() {
+  if (!formData.rgPhoto) {
+    alert('Nenhuma imagem selecionada');
+    return;
+  }
+
+  // 🔥 GARANTE QUE É UM FILE
+  const file = ensureFile(formData.rgPhoto);
+
+  console.log('📤 Enviando para OCR:', file, file instanceof File);
+
+  const formDataReq = new FormData();
+  formDataReq.append('imagem', file);
+
+  try {
+    const response = await fetch('http://localhost:8000/api/ocr', {
+      method: 'POST',
+      body: formDataReq
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.status !== 'sucesso') {
+      throw new Error(result.erro || 'Erro OCR');
+    }
+
+    console.log('🧠 OCR RESULTADO:', result);
+
+    setFormData(prev => ({
+      ...prev,
+      fullName: result.dados?.nome || '',
+      rg: result.dados?.rg || '',
+      cpf: result.dados?.cpf || '',
+      birthDate: result.dados?.data_nascimento
+        ? result.dados.data_nascimento.split('/').reverse().join('-')
+        : ''
+    }));
+
+  } catch (err) {
+    console.error('❌ OCR erro:', err);
+    alert('Erro ao processar OCR');
+  }
+}
+
+
+
+
   /* =========================
      🔥 OCR – BUSCA NA API
      ========================= */
   async function fetchRGFromAPI() {
-    try {
-      const response = await fetch('http://localhost:8000/api/rg/ultimo');
-      if (!response.ok) return;
+  try {
+    const response = await fetch('http://localhost:8000/api/rg/ultimo');
+    if (!response.ok) return;
 
-      const data = await response.json();
+    const result = await response.json();
 
-      setFormData({
-        fullName: data.nome || '',
-        rg: data.rg || '',
-        cpf: data.cpf || '',
-        birthDate: data.data_nascimento
-          ? data.data_nascimento.split('/').reverse().join('-')
-          : '',
-        rgPhoto: '',
-      });
-    } catch (err) {
-      console.warn('OCR indisponível:', err);
-    }
+    if (!result?.dados) return;
+
+    setFormData(prev => ({
+      ...prev,
+      fullName: result.dados.nome || '',
+      rg: result.dados.rg || '',
+      cpf: result.dados.cpf || '',
+      birthDate: result.dados.data_nascimento
+        ? result.dados.data_nascimento.split('/').reverse().join('-')
+        : ''
+    }));
+
+  } catch (err) {
+    console.warn('⚠️ OCR indisponível:', err);
   }
+}
+
+
 
   /* 🔄 Dispara OCR automaticamente ao criar */
   useEffect(() => {
-    if (mode === 'create') {
-      fetchRGFromAPI();
-    }
-  }, [mode]);
+  if (mode === 'ocr') {
+    fetchRGFromAPI().finally(() => {
+      setMode('create');
+    });
+  }
+}, [mode]);
+
 
 
   // Validação de CPF
@@ -495,49 +575,87 @@ export function PatientRegistration() {
       {/* Form */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Foto do RG */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Foto do RG
-            </label>
-            
-            {formData.rgPhoto ? (
-              <div className="relative inline-block">
-                <img
-                  src={formData.rgPhoto}
-                  alt="RG"
-                  className="w-full max-w-md h-auto rounded-lg border-2 border-gray-200"
-                />
-                <button
-                  onClick={() => setFormData({ ...formData, rgPhoto: '' })}
-                  className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={startCamera}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                >
-                  <Camera size={20} className="text-gray-600" />
-                  <span className="text-sm text-gray-600">Tirar Foto</span>
-                </button>
-                
-                <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer">
-                  <Upload size={20} className="text-gray-600" />
-                  <span className="text-sm text-gray-600">Enviar Arquivo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            )}
-          </div>
+         {/* Foto do RG */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Foto do RG
+  </label>
+
+  {/* Preview da imagem */}
+  {formData.rgPhoto && (
+    <div className="relative mb-3">
+      <img
+        src={formData.rgPhoto}
+        alt="RG"
+        className="w-full max-w-md h-auto rounded-lg border-2 border-gray-200"
+      />
+
+      {/* Remover foto */}
+      <button
+        onClick={() => setFormData({ ...formData, rgPhoto: '' })}
+        className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
+        title="Remover foto"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )}
+
+  {/* Botões */}
+  <div className="flex flex-col sm:flex-row gap-3">
+    {/* Tirar foto */}
+    {!formData.rgPhoto && (
+      <button
+        onClick={startCamera}
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+      >
+        <Camera size={20} className="text-gray-600" />
+        <span className="text-sm text-gray-600">Tirar Foto</span>
+      </button>
+    )}
+
+    {/* Upload */}
+    {!formData.rgPhoto && (
+      <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer">
+        <Upload size={20} className="text-gray-600" />
+        <span className="text-sm text-gray-600">Enviar Arquivo</span>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          className="hidden"
+        />
+      </label>
+
+      
+    )}
+
+    {/* 🔥 BOTÃO LER RG — SEMPRE VISÍVEL SE TIVER FOTO */}
+ <button
+  type="button"
+  onClick={sendRGToOCR}
+  //  disabled={!rgFile}
+  className={`
+    flex items-center justify-center gap-2
+    px-5 py-3
+    rounded-xl
+    shadow-lg
+    transition-all
+    ${rgFile
+      ? 'bg-green-600 hover:bg-green-700 text-white'
+      : 'bg-gray-400 cursor-not-allowed text-gray-700'}
+  `}
+>
+  <Upload size={20} />
+  <span className="text-sm font-semibold">
+    {rgFile ? 'Ler RG' : 'Nenhuma imagem'}
+  </span>
+</button>
+
+
+</div>
+</div>
+
 
           {/* Nome Completo */}
           <div>
