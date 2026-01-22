@@ -1,13 +1,12 @@
 from fastapi import FastAPI
-from app.database import engine
-from .models import Base
-from .routes import laudos
+from app.database import Base, engine
+
+from app.routes.pacientes import router as pacientes_router
+from app.routes.laudos import router as laudos_router
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="API de Laudos")
-app.include_router(laudos.router)
+app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"status": "API rodando"}
+app.include_router(pacientes_router)
+app.include_router(laudos_router)
