@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { CameraRG } from "./CameraRG";
+import {
+  criarPaciente,
+  atualizarPaciente,
+  deletarPaciente
+} from "../../api/pacienteservices";
+
 
 // import { Buffer } from 'buffer'; // Importing Buffer from 'buffer' only if needed
 
@@ -29,6 +35,12 @@ const [showCamera, setShowCamera] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [rgFile, setRgFile] = useState<File | null>(null);
+
+
+
+
+
+  
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -41,6 +53,7 @@ const [showCamera, setShowCamera] = useState(false);
   
   const [errors, setErrors] = useState<Record<string, string>>({});
  
+
 
 
   //converte Base64 para file
@@ -247,31 +260,62 @@ async function sendRGToOCR() {
     }
   };
 
-  // Salvar paciente
-  const handleSave = () => {
-    if (!validateForm()) return;
-    
-    if (mode === 'create') {
-      const newPatient: Patient = {
-        id: Date.now().toString(),
-        fullName: formData.fullName,
-        rg: formData.rg,
-        cpf: formData.cpf,
-        birthDate: formData.birthDate,
-        rgPhoto: formData.rgPhoto,
-        registrationDate: new Date(),
-      };
-      setPatients([...patients, newPatient]);
-    } else if (mode === 'edit' && selectedPatient) {
+const fromApiPaciente = (api: any): Patient => ({
+  id: api.id,
+  fullName: api.nome,
+  rg: api.rg,
+  cpf: api.cpf,
+  birthDate: api.data_nascimento,
+  rgPhoto: api.foto_rg_base64,
+  registrationDate: api.data_cadastro ?? new Date().toISOString(),
+});
+
+
+
+  
+ // Salvar paciente
+const handleSave = async () => {
+  if (!validateForm()) return;
+
+  try {
+    // DTO no formato EXATO que o FastAPI espera
+    const pacienteDTO = {
+      nome: formData.fullName,
+      rg: formData.rg,
+      cpf: formData.cpf,
+      data_nascimento: formData.birthDate,
+      foto_rg_base64: formData.rgPhoto || null,
+    };
+
+    if (mode === "edit" && selectedPatient) {
+      const atualizado = await atualizarPaciente(
+        selectedPatient.id,
+        pacienteDTO
+      );
+
+      const paciente = fromApiPaciente(atualizado);
+
       setPatients(patients.map(p =>
-        p.id === selectedPatient.id
-          ? { ...p, ...formData }
-          : p
+        p.id === paciente.id ? paciente : p
       ));
+    } else {
+      const novo = await criarPaciente(pacienteDTO);
+
+      const paciente = fromApiPaciente(novo);
+
+      setPatients([...patients, paciente]);
     }
-    
+
     resetForm();
-  };
+    setMode("create");
+    setSelectedPatient(null);
+    alert("Paciente salvo com sucesso!");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar paciente");
+  }
+};
+
 
   // Editar paciente
   const handleEdit = (patient: Patient) => {
@@ -288,11 +332,18 @@ async function sendRGToOCR() {
   };
 
   // Deletar paciente
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este paciente?')) {
-      setPatients(patients.filter(p => p.id !== id));
-    }
-  };
+  const handleDelete = async (id: string) => {
+  if (!confirm("Tem certeza que deseja excluir este paciente?")) return;
+
+  try {
+    await deletarPaciente(id);
+    setPatients(patients.filter(p => p.id !== id));
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao excluir paciente");
+  }
+};
+
 
   // Resetar formulário
   const resetForm = () => {

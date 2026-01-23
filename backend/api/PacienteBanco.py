@@ -10,6 +10,7 @@ router = APIRouter(
     tags=["Pacientes"]
 )
 
+
 # Dependência do banco
 def get_db():
     db = SessionLocal()
@@ -19,7 +20,6 @@ def get_db():
         db.close()
 
 
-# 🔹 CREATE
 @router.post("", status_code=status.HTTP_201_CREATED)
 def criar_paciente(
     paciente: PacienteCreate,
@@ -32,7 +32,6 @@ def criar_paciente(
     return novo
 
 
-# 🔹 READ (por id)
 @router.get("/{id}")
 def buscar_por_id(
     id: int,
@@ -47,44 +46,3 @@ def buscar_por_id(
         )
 
     return paciente
-
-
-# 🔹 UPDATE
-@router.put("/{id}")
-def atualizar_paciente(
-    id: int,
-    paciente: PacienteCreate,
-    db: Session = Depends(get_db)
-):
-    paciente_db = db.query(Paciente).filter(Paciente.id == id).first()
-
-    if not paciente_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Paciente não encontrado"
-        )
-
-    for campo, valor in paciente.model_dump().items():
-        setattr(paciente_db, campo, valor)
-
-    db.commit()
-    db.refresh(paciente_db)
-    return paciente_db
-
-
-# 🔹 DELETE
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_paciente(
-    id: int,
-    db: Session = Depends(get_db)
-):
-    paciente = db.query(Paciente).filter(Paciente.id == id).first()
-
-    if not paciente:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Paciente não encontrado"
-        )
-
-    db.delete(paciente)
-    db.commit()
