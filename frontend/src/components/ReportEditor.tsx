@@ -3,14 +3,15 @@ import { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import { AudioRecorder } from "./AudioRecorder";
 
+
 /*
 */
 
 type Patient = {
-  id: string;
-  name: string;
-  age: number;
-  email: string;
+  id: number;
+  nome: string;
+  idade: number;
+  prontuario: string;
 };
 
 type ReportEditorProps = {
@@ -34,21 +35,18 @@ type Template = {
   content: string;
 };
 
-type MockReport = {
-  id: string;
-  patientId: string;
-  content: string;
-  type: string;
-  status: ReportStatus;
-  date: Date;
+
+
+type TipoLaudo = {
+  id: number;
+  nome: string;
 };
 
 export function ReportEditor({ selectedPatient }: ReportEditorProps) {
   const [reportContent, setReportContent] = useState('');
-  const [reportType, setReportType] = useState('');
+  const [reportType, setReportType] = useState<string>('');
+const [laudoTexto, setLaudoTexto] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [patientSearch, setPatientSearch] = useState('');
-  const [selectedPatientLocal, setSelectedPatientLocal] = useState<Patient | null>(selectedPatient);
   const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -63,8 +61,13 @@ export function ReportEditor({ selectedPatient }: ReportEditorProps) {
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
+const [categorias, setCategorias] = useState<TipoLaudo[]>([]);
+const [selectedTipoLaudoId, setSelectedTipoLaudoId] = useState<number | "">("");
 
 
+const [patients, setPatients] = useState<Patient[]>([]);
+const [patientSearch, setPatientSearch] = useState('');
+const [selectedPatientLocal, setSelectedPatientLocal] = useState<Patient | null>(null);
   
   const [editHistory, setEditHistory] = useState<string[]>(['']);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -79,124 +82,164 @@ export function ReportEditor({ selectedPatient }: ReportEditorProps) {
   const [transcriptionProgress, setTranscriptionProgress] = useState('');
   const [micPermissionStatus, setMicPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
   const [showPermissionGuide, setShowPermissionGuide] = useState(false);
-  
-  const mockPatients: Patient[] = [
-    { id: '1', name: 'Maria Santos', age: 45, email: 'maria.santos@example.com' },
-    { id: '2', name: 'João Oliveira', age: 62, email: 'joao.oliveira@example.com' },
-    { id: '3', name: 'Ana Costa', age: 34, email: 'ana.costa@example.com' },
-  ];
+ 
+const getStatusConfig = (status: ReportStatus | undefined | null) => {
+  const configs = {
+    pending:     { label: 'Pendente',   color: 'bg-yellow-100 text-yellow-700 border-yellow-300', icon: '⏳' },
+    'in-progress': { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700 border-blue-300',   icon: '✏️' },
+    completed:   { label: 'Concluído',  color: 'bg-green-100 text-green-700 border-green-300',  icon: '✓' },
+    reviewed:    { label: 'Revisado',   color: 'bg-purple-100 text-purple-700 border-purple-300', icon: '✓✓' },
+  };
 
-  // Laudos de teste
-  const mockReports: MockReport[] = [
-    {
-      id: 'report-1',
-      patientId: '1',
-      type: 'Raio-X Tórax',
-      status: 'completed',
-      date: new Date('2026-01-07'),
-      content: `LAUDO DE RAIO-X DE TÓRAX
+  // Default fallback when status is invalid/missing
+  const defaultConfig = {
+    label: 'Selecione o status',
+    color: 'bg-gray-100 text-gray-700 border-gray-400',
+    icon: '?'
+  };
 
-DADOS DO PACIENTE:
-Nome: Maria Santos
-Idade: 45 anos
-Data do Exame: 07/01/2026
+  if (!status) return defaultConfig;
 
-TÉCNICA:
-Radiografia de tórax em incidências PA e perfil.
+  return configs[status] ?? defaultConfig;
+};
 
-ANÁLISE:
-Pulmões com transparência preservada, sem evidências de consolidações, nódulos ou massas.
-Trama vascular pulmonar de aspecto habitual.
-Seios costofrênicos livres.
-Área cardíaca dentro dos limites da normalidade.
-Mediastino de contornos regulares, sem alargamento.
-Arcabouço ósseo íntegro.
 
-CONCLUSÃO:
-Radiografia de tórax sem alterações significativas.
 
-Dr. João Silva
-CRM XXXXX/XX
-Radiologista`
-    },
-    {
-      id: 'report-2',
-      patientId: '2',
-      type: 'Tomografia Computadorizada',
-      status: 'in-progress',
-      date: new Date('2026-01-07'),
-      content: `LAUDO DE TOMOGRAFIA COMPUTADORIZADA DE ABDOME
 
-DADOS DO PACIENTE:
-Nome: João Oliveira
-Idade: 62 anos
-Data do Exame: 07/01/2026
 
-TÉCNICA:
-Tomografia computadorizada de abdome total, sem e com contraste endovenoso.
 
-ANÁLISE:
-Fígado de dimensões e contornos normais, com densidade homogênea.
-Vesícula biliar de paredes finas, sem cálculos.
-Vias biliares intra e extra-hepáticas sem dilatação.
-Pâncreas de morfologia preservada.
-Baço de dimensões normais.
-Rins tópicos, de morfologia e dimensões preservadas, sem sinais de hidronefrose.
-Bexiga de contornos regulares.
-Ausência de líquido livre na cavidade.
-Alças intestinais de aspecto habitual.
 
-CONCLUSÃO:
-Tomografia de abdome sem alterações significativas no momento.
-
-Dr. João Silva
-CRM XXXXX/XX
-Radiologista`
-    },
-    {
-      id: 'report-3',
-      patientId: '3',
-      type: 'Ressonância Magnética',
-      status: 'pending',
-      date: new Date('2026-01-06'),
-      content: `LAUDO DE RESSONÂNCIA MAGNÉTICA DE JOELHO DIREITO
-
-DADOS DO PACIENTE:
-Nome: Ana Costa
-Idade: 34 anos
-Data do Exame: 06/01/2026
-
-TÉCNICA:
-Ressonância magnética do joelho direito nas sequências T1, T2, STIR e densidade de prótons.
-
-ANÁLISE:
-Menisco medial: Aspecto anatômico preservado.
-Menisco lateral: Pequena área de hipersinal no corno posterior, inespecífica.
-Ligamento cruzado anterior: Íntegro.
-Ligamento cruzado posterior: Íntegro.
-Ligamentos colaterais: Preservados.
-Cartilagem articular: Sem evidências de lesões condrais.
-Derrame articular: Discreto derrame articular.
-
-CONCLUSÃO:
-1. Discreto derrame articular.
-2. Pequena área de hipersinal no corno posterior do menisco lateral, a correlacionar com dados clínicos.
-
-Dr. João Silva
-CRM XXXXX/XX
-Radiologista`
+  useEffect(() => {
+    if (selectedPatient) {
+      setSelectedPatientLocal(selectedPatient);
     }
-  ];
+  }, [selectedPatient]);
+  
+  // Load report when patient is selected
+  useEffect(() => {
+  if (!selectedPatientLocal) return;
 
-  const examTypes = [
-    'Raio-X Tórax',
-    'Tomografia Computadorizada',
-    'Ressonância Magnética',
-    'Ultrassom',
-    'Mamografia',
-    'Densitometria Óssea',
-    'Outro'
-  ];
+  fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}`)
+    .then(async res => {
+      if (!res.ok) {
+        throw new Error("Erro ao buscar laudo");
+      }
+
+      return res.json(); // pode ser objeto OU null
+    })
+    .then(patientReport => {
+      if (!patientReport) {
+        // 🟢 paciente ainda não tem laudo
+        setReportContent("");
+        setReportStatus("in-progress");
+        setCurrentReportId(null);
+        setSelectedTipoLaudoId("");
+        return;
+      }
+
+      // 🟢 paciente já tem laudo
+      setReportContent(patientReport.conteudo ?? "");
+      setReportStatus(patientReport.status ?? "in-progress");
+      setCurrentReportId(patientReport.id);
+      setSelectedTipoLaudoId(patientReport.tipo_laudo_id);
+    })
+    .catch(err => {
+      console.error("Erro ao carregar laudo do paciente", err);
+    });
+}, [selectedPatientLocal]);
+
+
+
+
+
+ useEffect(() => {
+  fetch("http://localhost:8100/pacientes")
+    .then(res => {
+      if (!res.ok) throw new Error("Erro ao buscar pacientes");
+      return res.json();
+    })
+    .then(data => setPatients(data))
+    .catch(err => console.error("Erro ao carregar pacientes", err));
+}, []);
+
+
+ useEffect(() => {
+  fetch("http://localhost:8100/laudos/tipos")
+    .then(res => res.json())
+    .then(data => setCategorias(data))
+    .catch(err => console.error("Erro ao buscar categorias", err));
+}, []);
+
+const filteredPatients = patients.filter(patient =>
+  (patient.nome ?? '').toLowerCase().includes(patientSearch.toLowerCase()) ||
+  (patient.prontuario ?? '').toLowerCase().includes(patientSearch.toLowerCase())
+);
+
+
+
+const handleSaveReport = async () => {
+  if (!selectedPatientLocal) {
+    alert("Selecione um paciente");
+    return;
+  }
+
+  if (!selectedTipoLaudoId) {
+    alert("Selecione o tipo de laudo");
+    return;
+  }
+
+  const safeContent = (reportContent ?? "").trim();
+
+  if (safeContent.length === 0) {
+    alert("O conteúdo do laudo está vazio");
+    return;
+  }
+
+  const payload = {
+    paciente_id: selectedPatientLocal.id,
+    tipo_laudo_id: Number(selectedTipoLaudoId),
+    status: reportStatus || "in-progress",
+    conteudo: safeContent,
+  };
+
+  console.log("📤 Enviando payload:", payload);
+
+  try {
+    const isUpdate = currentReportId !== null;
+
+    const response = await fetch(
+      isUpdate
+        ? `http://localhost:8100/laudos/paciente/${currentReportId}`
+        : `http://localhost:8100/laudos/paciente`,
+      {
+        method: isUpdate ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("❌ Erro do backend:", error);
+      throw new Error("Erro ao salvar laudo");
+    }
+
+    const savedReport = await response.json();
+
+    // 🟢 atualiza estado após salvar
+    setCurrentReportId(savedReport.id);
+    setReportStatus(savedReport.status);
+
+    alert("✅ Laudo salvo com sucesso");
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao salvar laudo");
+  }
+};
+
+
+
+
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -384,12 +427,13 @@ Radiologista`
       // 2. Solicitar transcrição
       
     const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
-      alert("TRANSCRIBE AUDIO CHAMADO");
+  alert("TRANSCRIBE + GERAR LAUDO CHAMADO");
+
   try {
     console.log("CHEGOU ATÉ AQUI");
 
     setIsTranscribing(true);
-    setTranscriptionProgress("Enviando áudio...");
+    setTranscriptionProgress("Enviando áudio para análise...");
 
     const formData = new FormData();
     formData.append(
@@ -399,44 +443,64 @@ Radiologista`
       })
     );
 
-    const response = await fetch("http://localhost:8000/transcrever", {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetch(
+      "http://localhost:8000/transcrever-e-gerar-laudo",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Erro na API");
+    }
 
     const data = await response.json();
     console.log("RESPOSTA API:", data);
 
-    const texto =
-      data.texto_transcrito ||
-      data.text ||
-      data.texto ||
-      "";
+    const laudo = data.laudo;
 
-    if (!texto) {
-      throw new Error("Texto vazio");
+    if (!laudo) {
+      throw new Error("Laudo não retornado pela IA");
     }
 
-    setTranscriptionProgress("Inserindo texto...");
+    setTranscriptionProgress("Gerando laudo médico...");
+
+    const textoLaudo = `
+HIPÓTESE DIAGNÓSTICA:
+${laudo.diagnostico_hipotese}
+
+EXAMES SUGERIDOS:
+- ${laudo.exames_sugeridos?.join("\n- ")}
+
+RECOMENDAÇÕES:
+${laudo.recomendacoes}
+
+CID SUGERIDO: ${laudo.cid_sugerido}
+`.trim();
 
     setReportContent(prev =>
-      prev + (prev ? "\n\n" : "") + texto
+      prev ? `${prev}\n\n${textoLaudo}` : textoLaudo
     );
 
     setIsTranscribing(false);
     setTranscriptionProgress("");
-    console.log("ANTES DO ERRO");
+    console.log("LAUDO INSERIDO COM SUCESSO");
 
   } catch (error) {
-    console.error("Erro na transcrição:", error);
+    console.error("Erro ao gerar laudo:", error);
+
     setIsTranscribing(false);
     setTranscriptionProgress("");
+
     setAudioError(
-      "❌ Erro ao transcrever o áudio. Verifique se a API está rodando."
+      "❌ Erro ao gerar o laudo a partir do áudio. Verifique as APIs."
     );
+
     setTimeout(() => setAudioError(""), 10000);
   }
 };
+
 
 
 
@@ -491,8 +555,10 @@ Radiologista`
     }, 0);
   };
 
-  const wordCount = reportContent.trim().split(/\s+/).filter(word => word.length > 0).length;
-  const charCount = reportContent.length;
+ const safeContent = reportContent ?? '';  // ou (reportContent || '')
+
+const wordCount = safeContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+const charCount = safeContent.length;
 
   const handleExportPDF = () => {
     const printWindow = window.open('', '_blank');
@@ -501,7 +567,7 @@ Radiologista`
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Laudo Médico - ${selectedPatientLocal.name}</title>
+            <title>Laudo Médico - ${selectedPatientLocal.nome}</title>
             <style>
               body { font-family: Arial, sans-serif; padding: 40px; }
               .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
@@ -522,9 +588,9 @@ Radiologista`
             
             <div class="patient-info">
               <h2>Dados do Paciente</h2>
-              <p><strong>Nome:</strong> ${selectedPatientLocal.name}</p>
-              <p><strong>Email:</strong> ${selectedPatientLocal.email}</p>
-              <p><strong>Idade:</strong> ${selectedPatientLocal.age} anos</p>
+              <p><strong>Nome:</strong> ${selectedPatientLocal.nome}</p>
+              
+              <p><strong>Idade:</strong> ${selectedPatientLocal.idade} anos</p>
               <p><strong>Tipo de Exame:</strong> ${reportType || 'Não especificado'}</p>
               <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
             </div>
@@ -561,20 +627,9 @@ Radiologista`
     }
   };
 
-  const filteredPatients = mockPatients.filter(p =>
-    p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    p.email.toLowerCase().includes(patientSearch.toLowerCase())
-  );
+ 
 
-  const getStatusConfig = (status: ReportStatus) => {
-    const configs = {
-      'pending': { label: 'Pendente', color: 'bg-yellow-100 text-yellow-700 border-yellow-300', icon: '⏳' },
-      'in-progress': { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700 border-blue-300', icon: '✏️' },
-      'completed': { label: 'Concluído', color: 'bg-green-100 text-green-700 border-green-300', icon: '✓' },
-      'reviewed': { label: 'Revisado', color: 'bg-purple-100 text-purple-700 border-purple-300', icon: '✓✓' },
-    };
-    return configs[status];
-  };
+  
 
   const handleStatusChange = (newStatus: ReportStatus) => {
     setReportStatus(newStatus);
@@ -598,31 +653,6 @@ Radiologista`
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (selectedPatient) {
-      setSelectedPatientLocal(selectedPatient);
-    }
-  }, [selectedPatient]);
-  
-  // Load report when patient is selected
-  useEffect(() => {
-    if (selectedPatientLocal) {
-      // Find the report for this patient
-      const patientReport = mockReports.find(report => report.patientId === selectedPatientLocal.id);
-      
-      if (patientReport) {
-        setReportContent(patientReport.content);
-        setReportType(patientReport.type);
-        setReportStatus(patientReport.status);
-        setCurrentReportId(patientReport.id);
-        
-        // Update edit history
-        setEditHistory([patientReport.content]);
-        setHistoryIndex(0);
-      }
-    }
-  }, [selectedPatientLocal]);
-  
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -638,10 +668,14 @@ Radiologista`
             <Plus size={18} />
             Novo
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-            <Save size={18} />
-            Salvar
-          </button>
+          <button
+  onClick={handleSaveReport}
+  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+>
+  <Save size={18} />
+  Salvar
+</button>
+
           <button 
             onClick={handleExportPDF}
             disabled={!selectedPatientLocal}
@@ -664,11 +698,11 @@ Radiologista`
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {selectedPatientLocal.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                      {selectedPatientLocal.nome.split(' ').map(n => n[0]).join('').substring(0, 2)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{selectedPatientLocal.name}</p>
-                      <p className="text-xs text-gray-500">{selectedPatientLocal.age} anos</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedPatientLocal.nome}</p>
+                      <p className="text-xs text-gray-500">{selectedPatientLocal.idade} anos</p>
                     </div>
                   </div>
                   <button 
@@ -689,24 +723,26 @@ Radiologista`
                   />
                   {patientSearch && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                      {filteredPatients.map(patient => (
-                        <button
-                          key={patient.id}
-                          onClick={() => {
-                            setSelectedPatientLocal(patient);
-                            setPatientSearch('');
-                          }}
-                          className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 transition-colors text-left"
-                        >
-                          <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs font-bold">
-                            {patient.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-gray-800">{patient.name}</p>
-                            <p className="text-xs text-gray-500">{patient.age} anos</p>
-                          </div>
-                        </button>
-                      ))}
+                     {filteredPatients.map(patient => (
+  <button
+    key={patient.id}
+    onClick={() => {
+      setSelectedPatientLocal(patient);
+      setPatientSearch('');
+    }}
+    className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 transition-colors text-left"
+  >
+    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs font-bold">
+      {patient.nome.split(' ').map(n => n[0]).join('').substring(0, 2)}
+    </div>
+    <div>
+      <p className="text-xs font-medium text-gray-800">{patient.nome}</p>
+      <p className="text-xs text-gray-500">{patient.idade} anos</p>
+    </div>
+  </button>
+))}
+
+                      
                     </div>
                   )}
                 </div>
@@ -715,17 +751,26 @@ Radiologista`
 
             {/* Exam Type */}
             <div className="flex-1">
-              <select
-                value={reportType}
-                onChange={(e) => setReportType(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tipo de exame...</option>
-                {examTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
+  <select
+    value={selectedTipoLaudoId}
+    onChange={(e) => {
+  const id = Number(e.target.value);
+  setSelectedTipoLaudoId(id);
+
+  const categoria = categorias.find(c => c.id === id);
+  setReportType(categoria ? categoria.nome : '');
+}}
+    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">Tipo de exame...</option>
+
+    {categorias.map((tipo) => (
+      <option key={tipo.id} value={tipo.id}>
+        {tipo.nome}
+      </option>
+    ))}
+  </select>
+</div>
 
             {/* Status */}
             <div className="relative" ref={statusDropdownRef}>
@@ -800,15 +845,14 @@ Radiologista`
             </div>
 
             {/* Text Area */}
-            <textarea
-  ref={textareaRef}
-  value={reportContent}
-  onChange={(e) => handleContentChange(e.target.value)}
-  className="report-textarea"
-  placeholder="Digite o laudo aqui..."
-/>
-
-          </div>
+           <textarea
+          ref={textareaRef}
+          value={reportContent}
+          onChange={(e) => handleContentChange(e.target.value)}  // ← corrigido!
+          className="report-textarea flex-1 p-4 resize-none focus:outline-none"
+          placeholder="Digite o laudo aqui..."
+        />
+      </div>
         </div>
 
         {/* Sidebar */}

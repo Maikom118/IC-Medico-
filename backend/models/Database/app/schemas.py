@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 
 
@@ -27,20 +27,35 @@ class PacienteResponse(PacienteBase):
     class Config:
         from_attributes = True
 
+class PacienteOut(PacienteBase):
+    id: int
+    data_criacao: date | None = None  # se existir no model
 
-# ---------- LAUDO ----------
+    class Config:
+        from_attributes = True
 
-class LaudoBase(BaseModel):
+        
+# ---------- LAUDO DO PACIENTE ----------
+
+class LaudoBaseCreate(BaseModel):
+    tipo_laudo_id: int
     titulo: Optional[str]
-    conteudo: Optional[str]
+    conteudo: str
+
+class TipoLaudoCreate(BaseModel):
+    titulo: str
+    tipo_laudo_id: int
+    tipo_conteudo: str  # "PDF" ou "TEXTO"
+    conteudo_texto: Optional[str] = None
+
+class LaudoPacienteCreate(BaseModel):
+    paciente_id: int
+    tipo_laudo_id: int
+    conteudo: str
     status: str
 
 
-class LaudoCreate(LaudoBase):
-    paciente_id: int
-
-
-class LaudoResponse(LaudoBase):
+class LaudoResponse(LaudoPacienteCreate):
     id: int
     paciente_id: int
     data_criacao: datetime

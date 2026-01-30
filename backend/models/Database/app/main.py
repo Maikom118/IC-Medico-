@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from app.database import Base, engine
 
+from app.models import Paciente, TipoLaudo, LaudoBase
+
 from app.routes.pacientes import router as pacientes_router
 from app.routes.laudos import router as laudos_router
 from fastapi.middleware.cors import CORSMiddleware
 
 
-Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
 
@@ -23,4 +25,5 @@ app.add_middleware(
 app.include_router(pacientes_router)
 app.include_router(laudos_router)
 
+Base.metadata.create_all(bind=engine)
 

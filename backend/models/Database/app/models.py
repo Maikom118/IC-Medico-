@@ -1,12 +1,17 @@
+import enum
 from sqlalchemy import (
     Column,
     Integer,
+    LargeBinary,
     String,
     Text,
     ForeignKey,
     DateTime,
-    Date
+    Date,
+    Enum as SAEnum
 )
+from sqlalchemy.sql import func
+from sqlalchemy.types import Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -20,37 +25,87 @@ class Paciente(Base):
     rg = Column(String(20), unique=True, nullable=False)
     cpf = Column(String(14), unique=True, nullable=True)
     data_nascimento = Column(Date)
-    laudos = relationship("Laudo", back_populates="paciente")
-   
 
-class Laudo(Base):
-    __tablename__ = "laudo"
+    laudos_paciente = relationship(
+        "LaudoPaciente",
+        back_populates="paciente",
+        cascade="all, delete-orphan"
+    )
+
+
+class TipoConteudoLaudo(enum.Enum):
+    TEXTO = "texto"
+    PDF = "pdf"
+
+
+class LaudoBase(Base):
+    __tablename__ = "laudo_base"
 
     id = Column(Integer, primary_key=True, index=True)
-    paciente_id = Column(
-        Integer,
-        ForeignKey("paciente.id", ondelete="CASCADE"),
+
+    tipo_laudo_id = Column(Integer, ForeignKey("tipo_laudo.id"), nullable=False)
+
+    titulo = Column(String(100), nullable=False)
+
+    # TEXTO DO MODELO (quando tipo_conteudo = TEXTO)
+    conteudo = Column(Text, nullable=True)
+
+    tipo_conteudo = Column(
+        SAEnum(
+            TipoConteudoLaudo,
+            name="tipoconteudolaudo",  # MUITO IMPORTANTE
+            native_enum=True
+        ),
         nullable=False
     )
 
-    titulo = Column(String(255))
-    conteudo = Column(Text)
-    status = Column(String(50), nullable=False)
+    # caminho do PDF (quando tipo_conteudo = PDF)
+    arquivo_pdf = Column(String, nullable=True)
 
-    data_criacao = Column(DateTime, default=datetime.utcnow)
-    data_atualizacao = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+    ativo = Column(Boolean, default=True)
+    criado_em = Column(DateTime, server_default=func.now())
+
+    tipo = relationship("TipoLaudo", back_populates="laudos_base")
+
+class TipoLaudo(Base):
+    __tablename__ = "tipo_laudo"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, unique=True, nullable=False)
+    descricao = Column(Text, nullable=True)
+
+    laudos_paciente = relationship(
+        "LaudoPaciente",
+        back_populates="tipo_laudo"
     )
 
-    paciente = relationship("Paciente", back_populates="laudos")
+    laudos_base = relationship(
+        "LaudoBase",
+        back_populates="tipo",
+        cascade="all, delete-orphan"
+    )
+
+
+class LaudoPaciente(Base):
+    __tablename__ = "laudo_paciente"
+
+    id = Column(Integer, primary_key=True, index=True)
+    paciente_id = Column(Integer, ForeignKey("paciente.id"), nullable=False)
+    tipo_laudo_id = Column(Integer, ForeignKey("tipo_laudo.id"), nullable=False)
+    status = Column(String(50), nullable=False)
+    conteudo = Column(Text, nullable=False)
+
+    criado_em = Column(DateTime, server_default=func.now())
+
+    paciente = relationship("Paciente", back_populates="laudos_paciente")
+    tipo_laudo = relationship("TipoLaudo", back_populates="laudos_paciente")
 
     audios = relationship(
         "Audio",
         back_populates="laudo",
         cascade="all, delete-orphan"
     )
+
     exames = relationship(
         "Exame",
         back_populates="laudo",
@@ -64,7 +119,7 @@ class Audio(Base):
     id = Column(Integer, primary_key=True)
     laudo_id = Column(
         Integer,
-        ForeignKey("laudo.id", ondelete="CASCADE"),
+        ForeignKey("laudo_paciente.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -72,7 +127,7 @@ class Audio(Base):
     duracao = Column(Integer)
     data_upload = Column(DateTime, default=datetime.utcnow)
 
-    laudo = relationship("Laudo", back_populates="audios")
+    laudo = relationship("LaudoPaciente", back_populates="audios")
 
 
 class Exame(Base):
@@ -81,7 +136,7 @@ class Exame(Base):
     id = Column(Integer, primary_key=True)
     laudo_id = Column(
         Integer,
-        ForeignKey("laudo.id", ondelete="CASCADE"),
+        ForeignKey("laudo_paciente.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -89,4 +144,4 @@ class Exame(Base):
     caminho_arquivo = Column(Text, nullable=False)
     data_upload = Column(DateTime, default=datetime.utcnow)
 
-    laudo = relationship("Laudo", back_populates="exames")
+    laudo = relationship("LaudoPaciente", back_populates="exames")

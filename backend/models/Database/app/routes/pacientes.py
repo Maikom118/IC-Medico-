@@ -1,9 +1,11 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+
 from app.database import SessionLocal
 from app.models import Paciente
-from app.schemas import PacienteCreate
+from app.schemas import PacienteCreate, PacienteOut
 
 router = APIRouter(
     prefix="/pacientes",
@@ -30,6 +32,12 @@ def criar_paciente(
     db.commit()
     db.refresh(novo)
     return novo
+
+# 🔹 GET ALL – Listar pacientes
+@router.get("", response_model=List[PacienteOut])
+def listar_pacientes(db: Session = Depends(get_db)):
+    pacientes = db.query(Paciente).order_by(Paciente.nome).all()
+    return pacientes
 
 
 # 🔹 READ (por id)

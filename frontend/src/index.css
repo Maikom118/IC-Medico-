@@ -283,7 +283,8 @@
   }
 
   textarea {
-    resize: vertical;
+    resize: none;
+    height: 790px;
   }
 
   ::-webkit-search-decoration {

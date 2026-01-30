@@ -48,8 +48,10 @@ export default function App() {
   >("dashboard");
   const [selectedPatient, setSelectedPatient] =
     useState<Patient | null>(null);
+    
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [templates, setTemplates] = useState<ReportTemplate[]>([
+    
     {
       id: "1",
       name: "Raio-X de Tórax Normal",

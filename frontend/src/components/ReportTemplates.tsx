@@ -1,60 +1,198 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, FileText, X, Save } from 'lucide-react';
 import type { ReportTemplate } from '../App';
 
-type ReportTemplatesProps = {
-  templates: ReportTemplate[];
-  onAddTemplate: (template: ReportTemplate) => void;
-  onDeleteTemplate: (id: string) => void;
+
+type TipoLaudo = {
+  id: number;
+  nome: string;
 };
 
-export function ReportTemplates({ templates, onAddTemplate, onDeleteTemplate }: ReportTemplatesProps) {
+
+export type ApiReportTemplate = {
+  id: number;
+  titulo: string;
+  conteudo: string;
+  tipo_laudo_id: number;
+  tipo_conteudo: 'texto' | 'pdf';
+  arquivo_pdf: string | null;
+  ativo: boolean;
+  criado_em: string;
+};
+
+
+export type Template = {
+  id: number;
+  name: string;
+  content: string;
+  category: string;
+  createdAt: Date; // 👈 era string
+};
+
+
+type ReportTemplatesProps = {
+  onDeleteTemplate: (id: number) => void;
+  onUseTemplate: (content: string) => void;
+};
+
+
+export function ReportTemplates({
+  onDeleteTemplate,
+  onUseTemplate,
+}: ReportTemplatesProps) {
+  // ✅ hooks NO LUGAR CERTO
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('');
+  const [categorias, setCategorias] = useState<TipoLaudo[]>([]);
+
+const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+const [usingTemplate, setUsingTemplate] = useState<Template | null>(null);
+
   const [showModal, setShowModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
-  const [templateCategory, setTemplateCategory] = useState('');
   const [templateContent, setTemplateContent] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedContentType, setSelectedContentType] =
+    useState<'texto' | 'pdf'>('texto');
+  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
 
-  const categories = ['Raio-X', 'Tomografia', 'Ressonância', 'Ultrassom', 'Mamografia', 'Outro'];
 
-  const handleCreateTemplate = () => {
+
+  /* Buscar laudo base do backend */
+useEffect(() => {
+  async function loadTemplates() {
+    const res = await fetch('http://localhost:8100/laudos/base');
+    const data: ApiReportTemplate[] = await res.json();
+
+    const mapped: Template[] = data.map((t) => ({
+      id: t.id,
+      name: t.titulo,
+      content: t.conteudo ?? '',
+      category:
+        categorias.find((c) => c.id === t.tipo_laudo_id)?.nome ??
+        'Sem categoria',
+      createdAt: new Date(t.criado_em),
+    }));
+
+    setTemplates(mapped);
+  }
+
+  if (categorias.length > 0) {
+    loadTemplates();
+  }
+}, [categorias]);
+
+
+  
+
+  
+
+
+
+
+
+/* Função para lidar com o upload do arquivo PDF */
+const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    setSelectedPdfFile(e.target.files[0]);
+  }
+};
+
+
+  /* Buscar categorias do backend */
+ useEffect(() => {
+  fetch('http://localhost:8100/laudos/tipos')
+    .then(res => res.json())
+    .then(data => setCategorias(data))
+    .catch(err => console.error('Erro ao buscar categorias', err));
+}, []);
+
+
+/* Função para criar um novo modelo de laudo */
+ const handleCreateTemplate = async () => {
+  try {
     if (!templateName || !templateCategory || !templateContent) {
-      alert('Por favor, preencha todos os campos');
+      alert("Preencha todos os campos obrigatórios");
       return;
     }
 
-    const newTemplate: ReportTemplate = {
-      id: Date.now().toString(),
-      name: templateName,
-      category: templateCategory,
-      content: templateContent,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    const formData = new FormData();
 
-    onAddTemplate(newTemplate);
-    
-    // Reset form
-    setTemplateName('');
-    setTemplateCategory('');
-    setTemplateContent('');
+formData.append("titulo", templateName);
+formData.append("tipo_laudo_id", templateCategory); // ID numérico
+formData.append("tipo_conteudo", "texto");
+formData.append("conteudo_texto", templateContent);
+
+if (selectedPdfFile) {
+  formData.append("arquivo", selectedPdfFile);
+}
+for (const [key, value] of formData.entries()) {
+  console.log(key, value);
+}
+    const response = await fetch("http://localhost:8100/laudos/base", {
+      method: "POST",
+      body: formData, // ⚠️ SEM headers
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error("Erro backend COMPLETO:", err.detail);
+      alert(err.detail[0].msg);
+      return;
+    }
+
+    alert("Modelo criado com sucesso!");
     setShowModal(false);
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar modelo");
+  }
+};
 
-  const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+// Função para enviar o laudo do paciente com PDF anexado
+const enviarLaudoPaciente = async (file: File) => {
+  const formData = new FormData();
+
+  formData.append('paciente_id', '1');
+  formData.append('laudo_base_id', '2');
+  formData.append('conteudo_final', templateContent);
+  formData.append('pdf', file);
+
+for (const pair of formData.entries()) {
+  console.log(pair[0], pair[1]);
+}
+  const response = await fetch('http://localhost:8100/laudos/paciente', {
+    method: 'POST',
+    body: formData, // ⚠️ SEM headers
   });
 
-  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
+  if (!response.ok) {
+    throw new Error('Erro ao enviar laudo');
+  }
+};
+
+  const filteredTemplates = templates.filter(template => {
+  const name = template.name?.toLowerCase() ?? '';
+  const category = template.category?.toLowerCase() ?? '';
+
+  return (
+    name.includes(searchTerm.toLowerCase()) &&
+    (selectedCategory === 'all' || category === selectedCategory.toLowerCase())
+  );
+});
+
+
+ const groupedTemplates = filteredTemplates.reduce(
+  (acc: Record<string, Template[]>, template) => {
     if (!acc[template.category]) {
       acc[template.category] = [];
     }
     acc[template.category].push(template);
     return acc;
-  }, {} as Record<string, ReportTemplate[]>);
+  },
+  {}
+);
 
   return (
     <div className="space-y-6">
@@ -88,15 +226,17 @@ export function ReportTemplates({ templates, onAddTemplate, onDeleteTemplate }: 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Categoria</label>
             <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Todas as categorias</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+  value={selectedCategory}
+  onChange={(e) => setSelectedCategory(e.target.value)}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>
+  <option value="all">Todas</option>
+  {categorias.map((cat) => (
+    <option key={cat.id} value={cat.nome.toLowerCase()}>
+      {cat.nome}
+    </option>
+  ))}
+</select>
           </div>
         </div>
       </div>
@@ -143,18 +283,30 @@ export function ReportTemplates({ templates, onAddTemplate, onDeleteTemplate }: 
                     
                     <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
                       <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
-                        {template.content.substring(0, 200)}
-                        {template.content.length > 200 && '...'}
+                        {(template.content ?? '').substring(0, 200)}
+                       {(template.content ?? '').length > 120 && '...'}
+
                       </pre>
                     </div>
                     
                     <div className="flex gap-2">
-                      <button className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
-                        Visualizar
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium">
-                        Usar Modelo
-                      </button>
+                    <button
+  onClick={() => setPreviewTemplate(template)}
+  className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+>
+  Visualizar
+</button>
+                   <button
+  onClick={() => {
+    onUseTemplate(template.content);
+  }}
+  className="flex-1 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+>
+  Usar Modelo
+</button>
+
+
+
                     </div>
                   </div>
                 ))}
@@ -183,65 +335,103 @@ export function ReportTemplates({ templates, onAddTemplate, onDeleteTemplate }: 
         </div>
       )}
 
-      {/* Create Template Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-gray-800">Novo Modelo de Laudo</h3>
-              <button 
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome do Modelo <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="text"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="Ex: Raio-X de Tórax - Pneumonia"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoria <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={templateCategory}
-                  onChange={(e) => setTemplateCategory(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Conteúdo do Modelo <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={templateContent}
-                  onChange={(e) => setTemplateContent(e.target.value)}
-                  placeholder="Digite o conteúdo do modelo de laudo..."
-                  rows={15}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Dica: Use este espaço para criar um modelo que você pode reutilizar. Inclua todas as seções que você normalmente usa.
-                </p>
-              </div>
+     {/* Create Template Modal */}
+{showModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      
+      <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h3 className="text-2xl font-bold text-gray-800">Novo Modelo de Laudo</h3>
+        <button
+          onClick={() => setShowModal(false)}
+          className="p-2 hover:bg-gray-100 rounded-lg"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      <div className="p-6 space-y-4">
+        
+        {/* Nome */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nome do Modelo <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg"
+          />
+        </div>
+
+        {/* Categoria */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Categoria <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={templateCategory}
+            onChange={(e) => setTemplateCategory(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg"
+          >
+            <option value="">Selecione uma categoria</option>
+            {categorias.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tipo de Conteúdo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tipo de Conteúdo <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={selectedContentType}
+            onChange={(e) =>
+              setSelectedContentType(e.target.value as 'texto' | 'pdf')
+            }
+            className="w-full px-4 py-2 border rounded-lg"
+          >
+            <option value="texto">Texto</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </div>
+
+        {/* Conteúdo em TEXTO */}
+        {selectedContentType === 'texto' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Conteúdo do Modelo <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={templateContent}
+              onChange={(e) => setTemplateContent(e.target.value)}
+              rows={12} 
+              className="w-full px-4 py-3 border rounded-lg font-mono text-sm"
+            />
+          </div>
+        )}
+
+        {/* Upload PDF (opcional) */}
+        {selectedContentType === 'pdf' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              PDF do Modelo <span className="text-gray-400">(opcional)</span>
+            </label>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) =>
+                setSelectedPdfFile(e.target.files?.[0] ?? null)
+              }
+            />
+          </div>
+        )}
+
 
               {/* Quick Templates */}
               <div className="bg-blue-50 rounded-lg p-4">
@@ -285,10 +475,28 @@ export function ReportTemplates({ templates, onAddTemplate, onDeleteTemplate }: 
                   Salvar Modelo
                 </button>
               </div>
+              
+             
             </div>
           </div>
         </div>
       )}
+       {previewTemplate && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl max-w-3xl w-full p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold">{previewTemplate.name}</h3>
+        <button onClick={() => setPreviewTemplate(null)}>
+          <X />
+        </button>
+      </div>
+
+      <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded max-h-[60vh] overflow-y-auto">
+        {previewTemplate.content}
+      </pre>
+    </div>
+  </div>
+)}
     </div>
   );
-}
+} 
