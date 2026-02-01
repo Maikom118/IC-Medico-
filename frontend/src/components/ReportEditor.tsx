@@ -42,7 +42,28 @@ type TipoLaudo = {
   nome: string;
 };
 
-export function ReportEditor({ selectedPatient }: ReportEditorProps) {
+
+type AudioDto = {
+  id: number;
+  laudo_id: number;
+  url: string;
+  duracao: number;
+  data_upload: string;
+};
+
+
+type ExameDto = {
+  id: number;
+  tipo: string;
+  descricao?: string;
+  url: string;
+};
+
+
+
+
+
+export  function ReportEditor({ selectedPatient }: ReportEditorProps) {
   const [reportContent, setReportContent] = useState('');
   const [reportType, setReportType] = useState<string>('');
 const [laudoTexto, setLaudoTexto] = useState('');
@@ -52,6 +73,10 @@ const [laudoTexto, setLaudoTexto] = useState('');
   const [recordingTime, setRecordingTime] = useState(0);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [laudoId, setLaudoId] = useState<number | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
+
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -60,6 +85,8 @@ const [laudoTexto, setLaudoTexto] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
+const [recordedAudioDuration, setRecordedAudioDuration] = useState<number>(0);
   
 const [categorias, setCategorias] = useState<TipoLaudo[]>([]);
 const [selectedTipoLaudoId, setSelectedTipoLaudoId] = useState<number | "">("");
@@ -82,6 +109,10 @@ const [selectedPatientLocal, setSelectedPatientLocal] = useState<Patient | null>
   const [transcriptionProgress, setTranscriptionProgress] = useState('');
   const [micPermissionStatus, setMicPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
   const [showPermissionGuide, setShowPermissionGuide] = useState(false);
+const [audios, setAudios] = useState<AudioDto[]>([]);
+const [exames, setExames] = useState<ExameDto[]>([]);
+const [imageFiles, setImageFiles] = useState<File[]>([]);
+
  
 const getStatusConfig = (status: ReportStatus | undefined | null) => {
   const configs = {
@@ -105,6 +136,20 @@ const getStatusConfig = (status: ReportStatus | undefined | null) => {
 
 
 
+
+useEffect(() => {
+  if (!laudoId) return;
+
+  const fetchExames = async () => {
+    const res = await fetch(`http://localhost:8100/laudos/${laudoId}/exames`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    setExames(data);
+  };
+
+  fetchExames();
+}, [laudoId]);
 
 
 
@@ -141,6 +186,7 @@ const getStatusConfig = (status: ReportStatus | undefined | null) => {
       setReportContent(patientReport.conteudo ?? "");
       setReportStatus(patientReport.status ?? "in-progress");
       setCurrentReportId(patientReport.id);
+      setLaudoId(patientReport.id); // 🔥 ESSENCIAL
       setSelectedTipoLaudoId(patientReport.tipo_laudo_id);
     })
     .catch(err => {
@@ -177,22 +223,150 @@ const filteredPatients = patients.filter(patient =>
 
 
 
-const handleSaveReport = async () => {
+useEffect(() => {
+  if (!laudoId) return;
+
+  const carregarAudios = async () => {
+    try {
+      await fetchAudios(laudoId);
+    } catch (error) {
+      console.error("Erro ao carregar áudios", error);
+    }
+  };
+
+  carregarAudios();
+}, [laudoId]);
+
+
+
+
+//Buscar Audios do Laudo
+const fetchAudios = async (laudoId: number) => {
+  const response = await fetch(
+    `http://localhost:8100/audios/laudos/${laudoId}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar áudios");
+  }
+
+  const data = await response.json();
+  setAudios(data);
+};
+
+
+
+
+
+
+
+
+//Salvar Tudo (Laudo, Audio, Exames)
+const handleSalvarTudo = async () => {
+  console.log("🚀 Iniciando salvar tudo");
+
+  // 1️⃣ Salvar laudo
+  const laudoId = await handleSaveReport();
+  if (!laudoId) {
+    console.error("❌ Laudo não foi salvo, abortando processo");
+    return;
+  }
+  console.log("🆔 Laudo salvo, ID:", laudoId);
+
+  // 2️⃣ Salvar áudio
+  await handleSaveAudio(laudoId);
+
+  // 3️⃣ Salvar exames/imagens
+  if (imageFiles.length > 0) {
+    await handleSaveExames(laudoId, imageFiles);
+    console.log("✅ Imagens salvas com sucesso");
+  } else {
+    console.log("⚠️ Nenhuma imagem para salvar");
+  }
+
+  console.log("✅ Tudo salvo com sucesso!");
+};
+
+
+
+
+//Salvar Imagens no banco
+const handleSaveExames = async (laudoId: number, files: File[]) => {
+  if (!files || files.length === 0) {
+    console.warn("⚠️ Nenhum exame para salvar");
+    return;
+  }
+
+  const formData = new FormData();
+  files.forEach(file => formData.append("files", file));
+  formData.append("tipo", reportType || "Exame");
+  formData.append("descricao", "Imagem do exame");
+
+  try {
+    const res = await fetch(`http://localhost:8100/exames/laudos/${laudoId}/exames`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Erro ao salvar exames");
+
+    const novosExames: ExameDto[] = await res.json();
+    setExames(prev => [...prev, ...novosExames]);
+    console.log("✅ Exames salvos com sucesso");
+  } catch (err) {
+    console.error("❌ Erro ao salvar exames:", err);
+    alert("Falha ao salvar exames");
+  }
+};
+
+
+
+
+
+//Salvar Audio no banco
+const handleSaveAudio = async (laudoId: number) => {
+  if (!recordedAudioBlob) {
+    console.warn("⚠️ Nenhum áudio para salvar");
+    return;
+  }
+
+  const formData = new FormData();
+
+  // ⚠️ NOME DO CAMPO TEM QUE SER "audio"
+  formData.append("audio", recordedAudioBlob, "audio.webm");
+
+  const response = await fetch(
+    `http://localhost:8100/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao salvar áudio");
+  }
+
+  console.log("🎧 Áudio salvo com sucesso");
+};
+
+//Salvar Laudo no banco
+const handleSaveReport = async (): Promise<number | null> => {
   if (!selectedPatientLocal) {
     alert("Selecione um paciente");
-    return;
+    return null;
   }
 
   if (!selectedTipoLaudoId) {
     alert("Selecione o tipo de laudo");
-    return;
+    return null;
   }
 
   const safeContent = (reportContent ?? "").trim();
 
   if (safeContent.length === 0) {
     alert("O conteúdo do laudo está vazio");
-    return;
+    return null;
   }
 
   const payload = {
@@ -226,28 +400,66 @@ const handleSaveReport = async () => {
 
     const savedReport = await response.json();
 
-    // 🟢 atualiza estado após salvar
-    setCurrentReportId(savedReport.id);
-    setReportStatus(savedReport.status);
+    console.log("📦 Resposta bruta da API:", savedReport);
 
+    // 🔥 normaliza resposta (POST ou PUT)
+    const laudo = savedReport.laudo ?? savedReport;
+
+    if (!laudo?.id) {
+      throw new Error("ID do laudo não retornado pelo backend");
+    }
+
+    // 🟢 atualiza estado
+    setCurrentReportId(laudo.id);
+    setReportStatus(laudo.status);
+
+    console.log("✅ Laudo salvo com ID:", laudo.id);
     alert("✅ Laudo salvo com sucesso");
+
+    return laudo.id; // ✅ ESSENCIAL
   } catch (err) {
     console.error(err);
     alert("Erro ao salvar laudo");
+    return null; // ✅ garante retorno
   }
 };
 
 
 
+//Upload Imagens no banco
+const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files;
+  if (!files) return;
+
+  const fileArray = Array.from(files);
+
+  // Criar URLs temporárias para preview
+  const newImages = fileArray.map(file => URL.createObjectURL(file));
+
+  // Atualiza state com novas imagens
+  setImages(prev => [...prev, ...newImages]);
+
+  // Salvar arquivos originais em state para envio ao backend
+  setImageFiles(prev => [...prev, ...fileArray]);
+};
 
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-      setImages([...images, ...newImages]);
-    }
-  };
+
+{/* Imagens vindas do banco */}
+{exames.length > 0 && (
+  <div className="grid grid-cols-2 gap-2 mb-4">
+    {exames.map(exame => (
+      <div key={exame.id} className="border rounded overflow-hidden">
+        <img
+          src={exame.url}
+          alt="Exame"
+          className="w-full h-24 object-cover"
+        />
+      </div>
+    ))}
+  </div>
+)}
+
 
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
@@ -297,27 +509,35 @@ const handleSaveReport = async () => {
           audioChunksRef.current.push(event.data);
         }
       };
+mediaRecorder.onstop = () => {
+  const audioBlob = new Blob(audioChunksRef.current, {
+    type: "audio/webm",
+  });
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        const newRecording: AudioRecording = {
-          id: Date.now().toString(),
-          blob: audioBlob,
-          url: audioUrl,
-          duration: recordingTime,
-          timestamp: new Date(),
-        };
-        
-        setAudioRecordings(prev => [...prev, newRecording]);
-        setRecordingTime(0);
-        
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-          streamRef.current = null;
-        }
-      };
+  const audioUrl = URL.createObjectURL(audioBlob);
+
+  const newRecording: AudioRecording = {
+    id: Date.now().toString(),
+    blob: audioBlob,
+    url: audioUrl,
+    duration: recordingTime,
+    timestamp: new Date(),
+    
+  };
+
+  setAudioRecordings(prev => [...prev, newRecording]);
+
+  // 👇 guarda o último áudio para salvar junto com o laudo
+  setRecordedAudioBlob(audioBlob);
+  setRecordedAudioDuration(recordingTime);
+
+  setRecordingTime(0);
+
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+  }
+};
 
       mediaRecorder.start();
       setIsRecording(true);
@@ -375,13 +595,17 @@ const handleSaveReport = async () => {
       Array.from(files).forEach(file => {
         const audioUrl = URL.createObjectURL(file);
         const newRecording: AudioRecording = {
-          id: Date.now().toString() + Math.random(),
-          blob: file,
-          url: audioUrl,
-          duration: 0,
-          timestamp: new Date(),
-        };
-        setAudioRecordings(prev => [...prev, newRecording]);
+  id: Date.now().toString() + Math.random(),
+  blob: file,
+  url: audioUrl,
+  duration: 0,
+  timestamp: new Date(),
+};
+
+setAudioRecordings(prev => [...prev, newRecording]);
+
+// 🔥 BACKEND
+uploadAudioToBackend(file);
       });
     }
   };
@@ -420,10 +644,32 @@ const handleSaveReport = async () => {
     }
   };
 
-  // Função para transcrever áudio usando a API FastAPI
- 
-      
-     
+//Slavar Audio no banco
+const uploadAudioToBackend = async (audioBlob: Blob) => {
+  if (!laudoId) {
+    alert("Salve o laudo antes de enviar o áudio");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", audioBlob, "gravacao.webm");
+
+  const response = await fetch(
+    `http://localhost:8100/laudos/${laudoId}/audio`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao salvar áudio");
+  }
+};
+
+
+
+  // Função para transcrever áudio usando a API FastAPI   
       // 2. Solicitar transcrição
       
     const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
@@ -668,13 +914,16 @@ const charCount = safeContent.length;
             <Plus size={18} />
             Novo
           </button>
-          <button
-  onClick={handleSaveReport}
+         <button
+  onClick={async () => {
+    await handleSalvarTudo();
+  }}
   className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
 >
   <Save size={18} />
   Salvar
 </button>
+
 
           <button 
             onClick={handleExportPDF}
@@ -1021,12 +1270,13 @@ const charCount = safeContent.length;
                   <Upload size={16} />
                   Upload
                   <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
+  type="file"
+  multiple
+  accept="image/*"
+  onChange={handleImageUpload}
+  className="hidden"
+/>
+
                 </label>
                 
                 {images.length > 0 ? (

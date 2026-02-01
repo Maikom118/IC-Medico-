@@ -63,3 +63,58 @@ class LaudoResponse(LaudoPacienteCreate):
 
     class Config:
         from_attributes = True
+
+
+class LaudoPacienteResponse(BaseModel):
+    id: int
+    paciente_id: int
+    tipo_laudo_id: int
+    conteudo: str
+    status: str
+    criado_em: datetime
+
+    class Config:
+        from_attributes = True
+
+# ---------- AUDIO DO MÉDICO ----------
+
+
+
+class AudioBase(BaseModel):
+    laudo_id: int
+
+
+class AudioCreate(AudioBase):
+    """
+    Usado apenas para referência lógica.
+    O upload real do arquivo é feito via UploadFile (FormData).
+    """
+    pass
+
+
+class AudioResponse(AudioBase):
+    id: int
+    caminho_arquivo: str
+    duracao: int
+    criado_em: datetime
+    
+    class Config:
+        from_attributes = True
+
+# ---------- EXAME FOTO ----------
+
+
+class ExameBase(BaseModel):
+    tipo_arquivo: str
+    caminho_arquivo: str
+
+class ExameCreate(ExameBase):
+    laudo_id: int
+
+class ExameOut(ExameBase):
+    id: int
+    laudo_id: int
+    data_upload: datetime
+
+    class Config:
+        from_attributes = True 

@@ -5,7 +5,7 @@ from app.database import SessionLocal
 from app.models import LaudoBase, TipoConteudoLaudo, TipoLaudo
 from app.models import LaudoPaciente
 from app.schemas import LaudoResponse, TipoLaudoCreate
-from app.schemas import LaudoPacienteCreate
+from app.schemas import LaudoPacienteCreate, LaudoPacienteResponse
 import os
 import shutil
 from fastapi.responses import FileResponse
@@ -105,7 +105,10 @@ def listar_tipos_laudo(db: Session = Depends(get_db)):
     return db.query(TipoLaudo).all()
 
 
-@router.post("/paciente", status_code=201, response_model=LaudoPacienteCreate)
+
+# 🔹 CREATE – Laudo do Paciente
+
+@router.post("/paciente", status_code=201, response_model=LaudoPacienteResponse) #lembrar de trocar
 def criar_laudo_paciente(
     data: LaudoPacienteCreate,
     db: Session = Depends(get_db)

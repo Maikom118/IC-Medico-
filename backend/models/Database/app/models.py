@@ -116,32 +116,34 @@ class LaudoPaciente(Base):
 class Audio(Base):
     __tablename__ = "audio"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     laudo_id = Column(
         Integer,
         ForeignKey("laudo_paciente.id", ondelete="CASCADE"),
         nullable=False
     )
 
-    caminho_arquivo = Column(Text, nullable=False)
-    duracao = Column(Integer)
-    data_upload = Column(DateTime, default=datetime.utcnow)
+    caminho_arquivo = Column(String, nullable=False)
+    duracao = Column(Integer, nullable=False)
+    data_upload = Column(DateTime, server_default=func.now())
 
     laudo = relationship("LaudoPaciente", back_populates="audios")
 
 
 class Exame(Base):
-    __tablename__ = "exame"
+    __tablename__ = "exames"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
+
     laudo_id = Column(
         Integer,
         ForeignKey("laudo_paciente.id", ondelete="CASCADE"),
         nullable=False
     )
 
-    tipo_arquivo = Column(String(20), nullable=False)
-    caminho_arquivo = Column(Text, nullable=False)
+    tipo_arquivo = Column(String, nullable=False)
+    caminho_arquivo = Column(String, nullable=False)
     data_upload = Column(DateTime, default=datetime.utcnow)
 
+    # relacionamento
     laudo = relationship("LaudoPaciente", back_populates="exames")
