@@ -55,8 +55,14 @@ type AudioDto = {
 type ExameDto = {
   id: number;
   tipo: string;
-  descricao?: string;
   url: string;
+  data_upload?: string;
+};
+
+
+type ExamePreview = {
+  file: File;
+  preview: string; // blob
 };
 
 
@@ -67,7 +73,7 @@ export  function ReportEditor({ selectedPatient }: ReportEditorProps) {
   const [reportContent, setReportContent] = useState('');
   const [reportType, setReportType] = useState<string>('');
 const [laudoTexto, setLaudoTexto] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+ 
   const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -113,6 +119,8 @@ const [audios, setAudios] = useState<AudioDto[]>([]);
 const [exames, setExames] = useState<ExameDto[]>([]);
 const [imageFiles, setImageFiles] = useState<File[]>([]);
 
+
+const [previews, setPreviews] = useState<ExamePreview[]>([]);
  
 const getStatusConfig = (status: ReportStatus | undefined | null) => {
   const configs = {
@@ -141,14 +149,16 @@ useEffect(() => {
   if (!laudoId) return;
 
   const fetchExames = async () => {
-    const res = await fetch(`http://localhost:8100/laudos/${laudoId}/exames`);
+    const res = await fetch(`http://localhost:8100/exames/laudos/${laudoId}/exames`);
     if (!res.ok) return;
 
-    const data = await res.json();
+    const data: ExameDto[] = await res.json();
+    console.log("📦 EXAMES RETORNADOS:", data);
     setExames(data);
   };
 
-  fetchExames();
+  fetchExames().catch(console.error);
+  
 }, [laudoId]);
 
 
@@ -241,18 +251,21 @@ useEffect(() => {
 
 
 //Buscar Audios do Laudo
-const fetchAudios = async (laudoId: number) => {
-  const response = await fetch(
-    `http://localhost:8100/audios/laudos/${laudoId}`
-  );
+async function fetchAudios(laudoId: number) {
+  try {
+    const response = await fetch(`http://localhost:8100/audios/laudos/${laudoId}`);
 
-  if (!response.ok) {
-    throw new Error("Erro ao buscar áudios");
+    if (!response.ok) {
+      console.warn("Nenhum áudio encontrado");
+      return [];
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("Erro ao carregar áudios", err);
+    return [];
   }
-
-  const data = await response.json();
-  setAudios(data);
-};
+}
 
 
 
@@ -431,39 +444,50 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const files = e.target.files;
   if (!files) return;
 
-  const fileArray = Array.from(files);
+  const novosPreviews: ExamePreview[] = Array.from(files).map(file => ({
+    file,
+    preview: URL.createObjectURL(file),
+  }));
 
-  // Criar URLs temporárias para preview
-  const newImages = fileArray.map(file => URL.createObjectURL(file));
-
-  // Atualiza state com novas imagens
-  setImages(prev => [...prev, ...newImages]);
-
-  // Salvar arquivos originais em state para envio ao backend
-  setImageFiles(prev => [...prev, ...fileArray]);
+  setPreviews(prev => [...prev, ...novosPreviews]);
+  setImageFiles(prev => [...prev, ...Array.from(files)]);
 };
 
 
 
-{/* Imagens vindas do banco */}
-{exames.length > 0 && (
-  <div className="grid grid-cols-2 gap-2 mb-4">
-    {exames.map(exame => (
-      <div key={exame.id} className="border rounded overflow-hidden">
-        <img
-          src={exame.url}
-          alt="Exame"
-          className="w-full h-24 object-cover"
-        />
-      </div>
-    ))}
-  </div>
-)}
+{/* EXAMES SALVOS (BACKEND) */}
+{exames.map((exame) => (
+  <img
+    key={exame.id}   // 👈 ESSENCIAL
+    src={exame.url}
+    alt={exame.tipo}
+    className="w-full h-24 object-cover rounded"
+  />
+))}
+
+{/* previews locais */}
+<div className="grid grid-cols-4 gap-2 mt-4">
+  {previews.map((p: ExamePreview, i: number) => (
+    <img
+      key={i}
+      src={p.preview}          // ✅ blob
+      alt={`Preview ${i}`}
+      className="w-full h-24 object-cover rounded opacity-70"
+    />
+  ))}
+</div>
+
+//Remover Imagem da lista de previews
+  const removePreview = (index: number) => {
+  setPreviews(prev => {
+    URL.revokeObjectURL(prev[index].preview);
+    return prev.filter((_, i) => i !== index);
+  });
+
+  setImageFiles(prev => prev.filter((_, i) => i !== index));
+};
 
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
 
   const startRecording = async () => {
     try {
@@ -757,14 +781,14 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   };
 
   const handleCreateNewReport = () => {
-    if (reportContent || reportType || images.length > 0 || audioRecordings.length > 0) {
+    if (reportContent || reportType || previews.length > 0 || audioRecordings.length > 0) {
       const confirmed = confirm('Tem certeza que deseja criar um novo laudo? Todas as alterações não salvas serão perdidas.');
       if (!confirmed) return;
     }
     
     setReportContent('');
     setReportType('');
-    setImages([]);
+    setPreviews([]);
     setAudioRecordings([]);
     setSelectedPatientLocal(null);
     setPatientSearch('');
@@ -807,71 +831,99 @@ const wordCount = safeContent.trim().split(/\s+/).filter(word => word.length > 0
 const charCount = safeContent.length;
 
   const handleExportPDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow && selectedPatientLocal) {
-      const content = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Laudo Médico - ${selectedPatientLocal.nome}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 40px; }
-              .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-              .header h1 { color: #2563eb; margin: 0; }
-              .patient-info { background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-              .patient-info p { margin: 5px 0; }
-              .report-content { line-height: 1.6; white-space: pre-wrap; }
-              .images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
-              .images img { width: 100%; border-radius: 8px; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>LAUDO MÉDICO</h1>
-              <p>MediPlataforma - Sistema de Gestão Médica</p>
+  const printWindow = window.open('', '_blank');
+
+  if (!printWindow || !selectedPatientLocal) return;
+
+  // imagens vindas do backend (exames já salvos)
+  const examesHTML = exames.length > 0
+    ? exames
+        .map(
+          (exame) =>
+            `<img src="${exame.url}" alt="Imagem do exame" />`
+        )
+        .join('')
+    : '';
+
+  // imagens selecionadas localmente (preview)
+  const previewsHTML = previews.length > 0
+    ? previews
+        .map(
+          (p) =>
+            `<img src="${p.preview}" alt="Imagem do exame" />`
+        )
+        .join('')
+    : '';
+
+  const content = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Laudo Médico - ${selectedPatientLocal.nome}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; }
+          .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { color: #2563eb; margin: 0; }
+          .patient-info { background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+          .patient-info p { margin: 5px 0; }
+          .report-content { line-height: 1.6; white-space: pre-wrap; }
+          .images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
+          .images img { width: 100%; border-radius: 8px; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>LAUDO MÉDICO</h1>
+          <p>MediPlataforma - Sistema de Gestão Médica</p>
+        </div>
+
+        <div class="patient-info">
+          <h2>Dados do Paciente</h2>
+          <p><strong>Nome:</strong> ${selectedPatientLocal.nome}</p>
+          <p><strong>Idade:</strong> ${selectedPatientLocal.idade} anos</p>
+          <p><strong>Tipo de Exame:</strong> ${reportType || 'Não especificado'}</p>
+          <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+
+        <div>
+          <h2>Laudo</h2>
+          <div class="report-content">
+            ${reportContent || 'Nenhum conteúdo adicionado.'}
+          </div>
+        </div>
+
+        ${(examesHTML || previewsHTML) ? `
+          <div>
+            <h2>Imagens do Exame</h2>
+            <div class="images">
+              ${examesHTML}
+              ${previewsHTML}
             </div>
-            
-            <div class="patient-info">
-              <h2>Dados do Paciente</h2>
-              <p><strong>Nome:</strong> ${selectedPatientLocal.nome}</p>
-              
-              <p><strong>Idade:</strong> ${selectedPatientLocal.idade} anos</p>
-              <p><strong>Tipo de Exame:</strong> ${reportType || 'Não especificado'}</p>
-              <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
-            </div>
-            
-            <div>
-              <h2>Laudo</h2>
-              <div class="report-content">${reportContent || 'Nenhum conteúdo adicionado.'}</div>
-            </div>
-            
-            ${images.length > 0 ? `
-              <div>
-                <h2>Imagens do Exame</h2>
-                <div class="images">
-                  ${images.map(img => `<img src="${img}" alt="Imagem do exame" />`).join('')}
-                </div>
-              </div>
-            ` : ''}
-            
-            <div class="footer">
-              <p>Dr. João Silva - CRM XXXXX/XX</p>
-              <p>Radiologista</p>
-              <p>Data de emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-            </div>
-          </body>
-        </html>
-      `;
-      
-      printWindow.document.write(content);
-      printWindow.document.close();
-      
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    }
-  };
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Dr. João Silva - CRM XXXXX/XX</p>
+          <p>Radiologista</p>
+          <p>
+            Data de emissão:
+            ${new Date().toLocaleDateString('pt-BR')}
+            às
+            ${new Date().toLocaleTimeString('pt-BR')}
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(content);
+  printWindow.document.close();
+
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
+};
 
  
 
@@ -1250,58 +1302,73 @@ const charCount = safeContent.length;
 
           {/* Images */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <button
-              onClick={() => setShowImagesSection(!showImagesSection)}
-              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <ImageIcon size={18} className="text-gray-600" />
-                <span className="font-medium text-gray-800">Imagens</span>
-                {images.length > 0 && (
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">{images.length}</span>
-                )}
-              </div>
-              {showImagesSection ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-            </button>
-            
-            {showImagesSection && (
-              <div className="border-t border-gray-200 p-3">
-                <label className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-sm mb-3">
-                  <Upload size={16} />
-                  Upload
-                  <input
-  type="file"
-  multiple
-  accept="image/*"
-  onChange={handleImageUpload}
-  className="hidden"
-/>
+  <button
+    onClick={() => setShowImagesSection(!showImagesSection)}
+    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+  >
+    <div className="flex items-center gap-2">
+      <ImageIcon size={18} className="text-gray-600" />
+      <span className="font-medium text-gray-800">Imagens</span>
+      {(previews.length + exames.length) > 0 && (
+        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+          {previews.length + exames.length}
+        </span>
+      )}
+    </div>
+    {showImagesSection ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+  </button>
 
-                </label>
-                
-                {images.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
-                    {images.map((img, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Imagem ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 text-center py-4">Nenhuma imagem</p>
-                )}
-              </div>
-            )}
+  {showImagesSection && (
+    <div className="border-t border-gray-200 p-3">
+      <label className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer text-sm mb-3">
+        <Upload size={16} />
+        Upload
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+      </label>
+
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+        {/* 🔵 IMAGENS DO BACKEND */}
+        {exames.map(exame => (
+          <img
+            key={`exame-${exame.id}`}
+            src={exame.url}
+            alt={exame.tipo}
+            className="w-full h-24 object-cover rounded"
+          />
+        ))}
+
+        {/* 🟡 PREVIEW LOCAL */}
+        {previews.map((p, index) => (
+          <div key={`preview-${index}`} className="relative group">
+            <img
+              src={p.preview}
+              alt={`Preview ${index + 1}`}
+              className="w-full h-24 object-cover rounded opacity-80"
+            />
+            <button
+              onClick={() => removePreview(index)}
+              className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {previews.length === 0 && exames.length === 0 && (
+        <p className="text-xs text-gray-400 text-center py-4">
+          Nenhuma imagem
+        </p>
+      )}
+    </div>
+  )}
+
           </div>
         </div>
       </div>

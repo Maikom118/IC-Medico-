@@ -1,9 +1,10 @@
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException,  Request, UploadFile
 from requests import Session
 from app.database import SessionLocal
 from app.models import Audio, Exame, LaudoPaciente, LaudoPaciente
 import os
+from pathlib import Path
 
 import uuid
 
@@ -25,53 +26,36 @@ def get_db():
 UPLOAD_DIR = "uploads/exames"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/laudos/{laudo_id}/exames", status_code=201)
-def upload_exame(
+@router.get("/exames/laudos/{laudo_id}/exames")
+def listar_exames_laudo(
     laudo_id: int,
-    files: list[UploadFile] = File(...),
-    tipo: str = Form(...),
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    laudo = db.query(LaudoPaciente).filter_by(id=laudo_id).first()
-    if not laudo:
-        raise HTTPException(404, "Laudo não encontrado")
-
-    pasta_laudo = f"uploads/exames/laudo_{laudo_id}"
-    os.makedirs(pasta_laudo, exist_ok=True)
-
-    exames_salvos = []
-
-    for file in files:
-        nome_arquivo = f"{uuid.uuid4()}_{file.filename}"
-        caminho = os.path.join(pasta_laudo, nome_arquivo)
-
-        with open(caminho, "wb") as f:
-            f.write(file.file.read())
-
-        exame = Exame(
-            laudo_id=laudo_id,
-            tipo_arquivo=tipo,
-            caminho_arquivo=caminho,
-        )
-
-        db.add(exame)
-        exames_salvos.append(exame)
-
-    db.commit()
-
-    return exames_salvos
-
-
-@router.get("/laudos/{laudo_id}/exames")
-def listar_exames(laudo_id: int, db: Session = Depends(get_db)):
-    exames = db.query(Exame).filter_by(laudo_id=laudo_id).all()
+    exames = db.query(Exame).filter(Exame.laudo_id == laudo_id).all()
 
     return [
         {
             "id": e.id,
-            "tipo": e.tipo,
-            "descricao": e.descricao,
-            "url": f"http://localhost:8100/{e.caminho_arquivo}",
+            "url": str(request.base_url) + Path(e.caminho_arquivo).name
+        }
+        for e in exames
+    ]
+
+
+@router.get("/laudos/{laudo_id}/exames")
+def listar_exames_laudo(
+    laudo_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    exames = db.query(Exame).filter(Exame.laudo_id == laudo_id).all()
+
+    return [
+        {
+            "id": e.id,
+            "tipo": e.tipo_arquivo,
+            "url": str(request.base_url) + Path(e.caminho_arquivo).as_posix(),
             "data_upload": e.data_upload,
         }
         for e in exames

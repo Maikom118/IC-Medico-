@@ -63,3 +63,27 @@ def upload_audio_laudo(
         "caminho_arquivo": file_path,
         "duracao": duracao,
     }
+
+
+@router.get("/laudos/{laudo_id}")
+def listar_audios_laudo(
+    laudo_id: int,
+    db: Session = Depends(get_db),
+):
+    audios = (
+        db.query(Audio)
+        .filter(Audio.laudo_id == laudo_id)
+        .order_by(Audio.data_upload.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": a.id,
+            "laudo_id": a.laudo_id,
+            "url": f"http://localhost:8100/{a.caminho_arquivo.replace('\\', '/')}",
+            "duracao": a.duracao,
+            "data_upload": a.data_upload,
+        }
+        for a in audios
+    ]
