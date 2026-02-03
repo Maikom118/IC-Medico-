@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from "sonner";
 import { Plus, Edit, Trash2, FileText, X, Save } from 'lucide-react';
 import type { ReportTemplate } from '../App';
 
@@ -113,7 +114,7 @@ const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
  const handleCreateTemplate = async () => {
   try {
     if (!templateName || !templateCategory || !templateContent) {
-      alert("Preencha todos os campos obrigatórios");
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
@@ -138,15 +139,15 @@ for (const [key, value] of formData.entries()) {
     if (!response.ok) {
       const err = await response.json();
       console.error("Erro backend COMPLETO:", err.detail);
-      alert(err.detail[0].msg);
+      toast.error(err.detail?.[0]?.msg ?? "Erro ao criar modelo");
       return;
     }
 
-    alert("Modelo criado com sucesso!");
+    toast.success("Modelo criado com sucesso!");
     setShowModal(false);
   } catch (error) {
     console.error(error);
-    alert("Erro ao salvar modelo");
+    toast.error("Erro ao salvar modelo");
   }
 };
 

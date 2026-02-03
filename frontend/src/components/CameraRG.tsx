@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface CameraRGProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function CameraRG({ open, onClose, formData, setFormData }: CameraRGProps
         }
       })
       .catch(() => {
-        alert("Não foi possível acessar a câmera");
+        toast.error("Não foi possível acessar a câmera");
         onClose();
       });
 

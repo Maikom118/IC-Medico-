@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 type Props = {
   onTranscription: (text: string) => void;
@@ -29,7 +30,7 @@ export function AudioRecorder({ onTranscription }: Props) {
       mediaRecorder.start();
       setStatus("recording");
     } catch (err) {
-      alert("Erro ao acessar microfone");
+      toast.error("Erro ao acessar microfone");
       console.error(err);
     }
   }
@@ -63,7 +64,7 @@ export function AudioRecorder({ onTranscription }: Props) {
       setStatus("idle");
     } catch (err) {
       console.error(err);
-      alert("Erro ao transcrever áudio");
+      toast.error("Erro ao transcrever áudio");
       setStatus("idle");
     }
   }

@@ -1,5 +1,6 @@
 import { Download, Save, Upload, Mic, Square, Play, Pause, Trash2, Image as ImageIcon, X, FileText, Plus, Calendar, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { AudioRecorder } from "./AudioRecorder";
 
@@ -107,6 +108,7 @@ const [selectedTipoLaudoId, setSelectedTipoLaudoId] = useState<number | "">("");
 const [patients, setPatients] = useState<Patient[]>([]);
 const [patientSearch, setPatientSearch] = useState('');
 const [selectedPatientLocal, setSelectedPatientLocal] = useState<Patient | null>(null);
+const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   
   const [editHistory, setEditHistory] = useState<string[]>(['']);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -124,6 +126,7 @@ const [selectedPatientLocal, setSelectedPatientLocal] = useState<Patient | null>
 const [audios, setAudios] = useState<AudioDto[]>([]);
 const [exames, setExames] = useState<ExameDto[]>([]);
 const [imageFiles, setImageFiles] = useState<File[]>([]);
+const [audioVolume, setAudioVolume] = useState<number>(1);
 
 
 const [previews, setPreviews] = useState<ExamePreview[]>([]);
@@ -263,10 +266,15 @@ useEffect(() => {
     .catch(err => console.error("Erro ao buscar categorias", err));
 }, []);
 
-const filteredPatients = patients.filter(patient =>
-  (patient.nome ?? '').toLowerCase().includes(patientSearch.toLowerCase()) ||
-  (patient.prontuario ?? '').toLowerCase().includes(patientSearch.toLowerCase())
-);
+const filteredPatients = (patientSearch ? 
+  patients.filter(patient =>
+    (patient.nome ?? '').toLowerCase().includes(patientSearch.toLowerCase()) ||
+    (patient.prontuario ?? '').toLowerCase().includes(patientSearch.toLowerCase())
+  ) :
+  patients
+  .sort((a, b) => (a.nome ?? '').localeCompare(b.nome ?? ''))
+  .slice(0, 3)
+).slice(0, 3);
 
 
 
@@ -373,7 +381,7 @@ const handleSaveExames = async (laudoId: number, files: File[]) => {
     console.log("✅ Exames salvos com sucesso");
   } catch (err) {
     console.error("❌ Erro ao salvar exames:", err);
-    alert("Falha ao salvar exames");
+    toast.error("Falha ao salvar exames");
   }
 };
 
@@ -411,19 +419,19 @@ const handleSaveAudio = async (laudoId: number) => {
 //Salvar Laudo no banco
 const handleSaveReport = async (): Promise<number | null> => {
   if (!selectedPatientLocal) {
-    alert("Selecione um paciente");
+    toast.error("Selecione um paciente");
     return null;
   }
 
   if (!selectedTipoLaudoId) {
-    alert("Selecione o tipo de laudo");
+    toast.error("Selecione o tipo de laudo");
     return null;
   }
 
   const safeContent = (reportContent ?? "").trim();
 
   if (safeContent.length === 0) {
-    alert("O conteúdo do laudo está vazio");
+    toast.error("O conteúdo do laudo está vazio");
     return null;
   }
 
@@ -472,12 +480,12 @@ const handleSaveReport = async (): Promise<number | null> => {
     setReportStatus(laudo.status);
 
     console.log("✅ Laudo salvo com ID:", laudo.id);
-    alert("✅ Laudo salvo com sucesso");
+    toast.success("Laudo salvo com sucesso");
 
     return laudo.id; // ✅ ESSENCIAL
   } catch (err) {
     console.error(err);
-    alert("Erro ao salvar laudo");
+    toast.error("Erro ao salvar laudo");
     return null; // ✅ garante retorno
   }
 };
@@ -534,23 +542,36 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
 // Deletar exame do backend
 const removeBackendExame = async (exameId: number) => {
-  if (!confirm('Deseja realmente excluir esta imagem?')) return;
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`http://localhost:8100/exames/${exameId}`, {
+        method: 'DELETE',
+      });
 
-  try {
-    const response = await fetch(`http://localhost:8100/exames/${exameId}`, {
-      method: 'DELETE',
-    });
+      if (!response.ok) {
+        throw new Error('Erro ao deletar exame');
+      }
 
-    if (!response.ok) {
-      throw new Error('Erro ao deletar exame');
+      setExames(prev => prev.filter(e => e.id !== exameId));
+      console.log('✅ Exame deletado com sucesso');
+      toast.success('Imagem excluída com sucesso');
+    } catch (error) {
+      console.error('Erro ao deletar exame:', error);
+      toast.error('Falha ao deletar exame');
     }
+  };
 
-    setExames(prev => prev.filter(e => e.id !== exameId));
-    console.log('✅ Exame deletado com sucesso');
-  } catch (error) {
-    console.error('Erro ao deletar exame:', error);
-    alert('Falha ao deletar exame');
-  }
+  toast('Excluir imagem?', {
+    description: 'Essa ação não pode ser desfeita.',
+    action: {
+      label: 'Excluir',
+      onClick: confirmDelete,
+    },
+    cancel: {
+      label: 'Cancelar',
+      onClick: () => {},
+    },
+  });
 };
 
 
@@ -705,13 +726,23 @@ mediaRecorder.onstop = () => {
       let audio = audioRefs.current.get(id);
       if (!audio) {
         audio = new Audio(url);
+        audio.volume = audioVolume;
         audioRefs.current.set(id, audio);
         audio.onended = () => setPlayingAudioId(null);
       }
       
+      audio.volume = audioVolume;
       audio.play();
       setPlayingAudioId(id);
     }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setAudioVolume(newVolume);
+    audioRefs.current.forEach(audio => {
+      audio.volume = newVolume;
+    });
   };
 
   const removeAudio = (id: string) => {
@@ -728,36 +759,49 @@ mediaRecorder.onstop = () => {
 
   // Deletar áudio do backend
   const removeBackendAudio = async (audioId: number) => {
-    if (!confirm('Deseja realmente excluir este áudio?')) return;
+    const confirmDelete = async () => {
+      try {
+        const response = await fetch(`http://localhost:8100/audios/${audioId}`, {
+          method: 'DELETE',
+        });
 
-    try {
-      const response = await fetch(`http://localhost:8100/audios/${audioId}`, {
-        method: 'DELETE',
-      });
+        if (!response.ok) {
+          throw new Error('Erro ao deletar áudio');
+        }
 
-      if (!response.ok) {
-        throw new Error('Erro ao deletar áudio');
+        // Remover da lista local
+        setAudios(prev => prev.filter(a => a.id !== audioId));
+
+        // Parar reprodução se estiver tocando
+        const audioKey = `backend-${audioId}`;
+        const audio = audioRefs.current.get(audioKey);
+        if (audio) {
+          audio.pause();
+          audioRefs.current.delete(audioKey);
+        }
+        if (playingAudioId === audioKey) {
+          setPlayingAudioId(null);
+        }
+
+        console.log('✅ Áudio deletado com sucesso');
+        toast.success('Áudio excluído com sucesso');
+      } catch (error) {
+        console.error('Erro ao deletar áudio:', error);
+        toast.error('Falha ao deletar áudio');
       }
+    };
 
-      // Remover da lista local
-      setAudios(prev => prev.filter(a => a.id !== audioId));
-      
-      // Parar reprodução se estiver tocando
-      const audioKey = `backend-${audioId}`;
-      const audio = audioRefs.current.get(audioKey);
-      if (audio) {
-        audio.pause();
-        audioRefs.current.delete(audioKey);
-      }
-      if (playingAudioId === audioKey) {
-        setPlayingAudioId(null);
-      }
-
-      console.log('✅ Áudio deletado com sucesso');
-    } catch (error) {
-      console.error('Erro ao deletar áudio:', error);
-      alert('Falha ao deletar áudio');
-    }
+    toast('Excluir áudio?', {
+      description: 'Essa ação não pode ser desfeita.',
+      action: {
+        label: 'Excluir',
+        onClick: confirmDelete,
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => {},
+      },
+    });
   };
 
   // Transcrever áudio do backend
@@ -781,7 +825,7 @@ mediaRecorder.onstop = () => {
       );
 
       const response = await fetch(
-        'http://localhost:8000/transcrever-e-gerar-laudo',
+        'http://localhost:8300/transcrever-e-gerar-laudo',
         {
           method: 'POST',
           body: formData,
@@ -835,7 +879,7 @@ CID SUGERIDO: ${laudo.cid_sugerido}
 //Slavar Audio no banco
 const uploadAudioToBackend = async (audioBlob: Blob) => {
   if (!laudoId) {
-    alert("Salve o laudo antes de enviar o áudio");
+    toast.error("Salve o laudo antes de enviar o áudio");
     return;
   }
 
@@ -861,7 +905,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
       // 2. Solicitar transcrição
       
     const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
-  alert("TRANSCRIBE + GERAR LAUDO CHAMADO");
+  toast.info("Transcrevendo e gerando laudo...");
 
   try {
     console.log("CHEGOU ATÉ AQUI");
@@ -878,7 +922,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
     );
 
     const response = await fetch(
-      "http://localhost:8000/transcrever-e-gerar-laudo",
+      "http://localhost:8300/transcrever-e-gerar-laudo",
       {
         method: "POST",
         body: formData,
@@ -945,23 +989,61 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   };
 
   const handleCreateNewReport = () => {
-    if (reportContent || reportType || previews.length > 0 || audioRecordings.length > 0) {
-      const confirmed = confirm('Tem certeza que deseja criar um novo laudo? Todas as alterações não salvas serão perdidas.');
-      if (!confirmed) return;
+    const resetReport = () => {
+      previews.forEach(p => URL.revokeObjectURL(p.preview));
+      audioPreviews.forEach(p => URL.revokeObjectURL(p.preview));
+
+      setReportContent('');
+      setReportType('');
+      setSelectedTipoLaudoId('');
+      setPreviews([]);
+      setImageFiles([]);
+      setExames([]);
+      setAudioPreviews([]);
+      setAudioFiles([]);
+      setAudioRecordings([]);
+      setAudios([]);
+      setRecordedAudioBlob(null);
+      setRecordedAudioDuration(0);
+      setLaudoId(null);
+      setCurrentReportId(null);
+      setSelectedPatientLocal(null);
+      setPatientSearch('');
+      setEditHistory(['']);
+      setHistoryIndex(0);
+      setReportStatus('in-progress');
+      setIsRecording(false);
+      setRecordingTime(0);
+
+      audioRefs.current.forEach(audio => audio.pause());
+      audioRefs.current.clear();
+      setPlayingAudioId(null);
+    };
+
+    if (
+      reportContent ||
+      reportType ||
+      previews.length > 0 ||
+      audioPreviews.length > 0 ||
+      audioRecordings.length > 0 ||
+      audios.length > 0 ||
+      exames.length > 0
+    ) {
+      toast('Criar novo laudo?', {
+        description: 'As alterações não salvas serão perdidas.',
+        action: {
+          label: 'Confirmar',
+          onClick: resetReport,
+        },
+        cancel: {
+          label: 'Cancelar',
+          onClick: () => {},
+        },
+      });
+      return;
     }
-    
-    setReportContent('');
-    setReportType('');
-    setPreviews([]);
-    setAudioRecordings([]);
-    setSelectedPatientLocal(null);
-    setPatientSearch('');
-    setEditHistory(['']);
-    setHistoryIndex(0);
-    setReportStatus('in-progress');
-    
-    audioRefs.current.forEach(audio => audio.pause());
-    setPlayingAudioId(null);
+
+    resetReport();
   };
 
   const handleContentChange = (newContent: string) => {
@@ -1188,9 +1270,11 @@ const charCount = safeContent.length;
                     placeholder="Selecionar paciente..."
                     value={patientSearch}
                     onChange={(e) => setPatientSearch(e.target.value)}
+                    onFocus={() => setShowPatientDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  {patientSearch && (
+                  {showPatientDropdown && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                      {filteredPatients.map(patient => (
   <button
@@ -1457,6 +1541,23 @@ const charCount = safeContent.length;
             </span>
           </div>
           
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[9px] text-gray-500 font-medium">{Math.round(audioVolume * 100)}%</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={audioVolume}
+              onChange={handleVolumeChange}
+              className="w-16 h-0.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${audioVolume * 100}%, #e5e7eb ${audioVolume * 100}%, #e5e7eb 100%)`
+              }}
+              title="Ajustar volume"
+            />
+          </div>
+          
           <button
             onClick={() => transcribeBackendAudio(audio.url, audio.id)}
             className="flex-shrink-0 p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
@@ -1514,6 +1615,23 @@ const charCount = safeContent.length;
         
         <div className="flex-1 text-xs text-gray-600">
           {formatTime(recording.duration)}
+        </div>
+        
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="text-[9px] text-gray-500 font-medium">{Math.round(audioVolume * 100)}%</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={audioVolume}
+            onChange={handleVolumeChange}
+            className="w-16 h-0.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+            style={{
+              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${audioVolume * 100}%, #e5e7eb ${audioVolume * 100}%, #e5e7eb 100%)`
+            }}
+            title="Ajustar volume"
+          />
         </div>
         
         <button
@@ -1586,7 +1704,10 @@ const charCount = safeContent.length;
               className="w-full h-32 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
             />
             <button
-              onClick={() => removeBackendExame(exame.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                removeBackendExame(exame.id);
+              }}
               className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
               title="Excluir imagem"
             >
@@ -1605,7 +1726,10 @@ const charCount = safeContent.length;
               className="w-full h-32 object-contain rounded opacity-80 cursor-pointer hover:opacity-70 transition-opacity"
             />
             <button
-              onClick={() => removePreview(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                removePreview(index);
+              }}
               className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
             >
               <X size={14} />

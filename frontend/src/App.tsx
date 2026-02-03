@@ -5,6 +5,7 @@ import { ReportEditor } from "./components/ReportEditor";
 import { AIChat } from "./components/AIChat";
 import { ReportTemplates } from "./components/ReportTemplates";
 import { PatientRegistration } from "./components/PatientRegistration";
+import { Toaster } from "./components/ui/sonner";
 import {
   Menu,
   Users,
@@ -240,6 +241,8 @@ export default function App() {
           )}
           {currentView === "chat" && <AIChat />}
         </main>
+
+        <Toaster richColors position="top-right" />
       </div>
     </div>
   );

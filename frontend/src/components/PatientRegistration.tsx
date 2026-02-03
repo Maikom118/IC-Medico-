@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { toast } from "sonner";
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { CameraRG } from "./CameraRG";
 import {
@@ -80,9 +81,11 @@ function ensureFile(photo: File | string): File {
 
 async function sendRGToOCR() {
   if (!formData.rgPhoto) {
-    alert('Nenhuma imagem selecionada');
+    toast.error('Nenhuma imagem selecionada');
     return;
   }
+
+  toast.info('Lendo RG...');
 
   // 🔥 GARANTE QUE É UM FILE
   const file = ensureFile(formData.rgPhoto);
@@ -118,7 +121,7 @@ async function sendRGToOCR() {
 
   } catch (err) {
     console.error('❌ OCR erro:', err);
-    alert('Erro ao processar OCR');
+    toast.error('Erro ao processar OCR');
   }
 }
 
@@ -309,10 +312,10 @@ const handleSave = async () => {
     resetForm();
     setMode("create");
     setSelectedPatient(null);
-    alert("Paciente salvo com sucesso!");
+    toast.success("Paciente salvo com sucesso!");
   } catch (error) {
     console.error(error);
-    alert("Erro ao salvar paciente");
+    toast.error("Erro ao salvar paciente");
   }
 };
 
@@ -340,7 +343,7 @@ const handleSave = async () => {
     setPatients(patients.filter(p => p.id !== id));
   } catch (error) {
     console.error(error);
-    alert("Erro ao excluir paciente");
+    toast.error("Erro ao excluir paciente");
   }
 };
 
