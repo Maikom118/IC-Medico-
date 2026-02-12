@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Eye, Edit, Trash2 } from 'lucide-react';
 import type { Patient } from '../App';
+import { calcularIdade } from '../utils/dateUtils';
 
 type PatientListProps = {
   onPatientSelect: (patient: Patient) => void;
@@ -17,7 +18,7 @@ export function PatientList({ onPatientSelect }: PatientListProps) {
         const mapped: Patient[] = data.map((p: any) => ({
           id: p.id,
           name: p.nome ?? '',
-          age: p.idade ?? 0,
+          age: p.idade ?? (p.data_nascimento ? calcularIdade(p.data_nascimento) : 0),
           gender: p.genero ?? '',
           record: p.prontuario ?? '',
           lastVisit: p.ultima_visita ?? null

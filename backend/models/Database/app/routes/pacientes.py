@@ -37,7 +37,18 @@ def criar_paciente(
 @router.get("", response_model=List[PacienteOut])
 def listar_pacientes(db: Session = Depends(get_db)):
     pacientes = db.query(Paciente).order_by(Paciente.nome).all()
-    return pacientes
+    resultado = []
+    for p in pacientes:
+        paciente_dict = {
+            'id': p.id,
+            'nome': p.nome,
+            'cpf': p.cpf,
+            'rg': p.rg,
+            'data_nascimento': p.data_nascimento,
+            'idade': p.calcular_idade()
+        }
+        resultado.append(paciente_dict)
+    return resultado
 
 
 # 🔹 READ (por id)

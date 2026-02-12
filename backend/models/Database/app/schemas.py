@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import date, datetime
 from typing import List, Optional
 
@@ -29,10 +29,37 @@ class PacienteResponse(PacienteBase):
 
 class PacienteOut(PacienteBase):
     id: int
+    idade: int | None = None
     data_criacao: date | None = None  # se existir no model
 
     class Config:
         from_attributes = True
+
+    @field_validator('idade', mode='before')
+    @classmethod
+    def calcular_idade_validator(cls, v, values):
+        """Calcula a idade baseado em data_nascimento se não estiver na resposta"""
+        if v is not None:
+            return v
+        
+        # Se vier do SQLAlchemy, tenta usar o método do model ou calcular manual
+        if hasattr(values, 'data'):
+            data_nasc = values.data.get('data_nascimento')
+        else:
+            data_nasc = values.get('data_nascimento')
+            
+        if data_nasc:
+            if isinstance(data_nasc, datetime):
+                data_nasc = data_nasc.date()
+            elif isinstance(data_nasc, str):
+                data_nasc = datetime.fromisoformat(data_nasc).date()
+                
+            hoje = date.today()
+            idade = hoje.year - data_nasc.year
+            if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                idade -= 1
+            return idade
+        return 0
 
         
 # ---------- LAUDO DO PACIENTE ----------

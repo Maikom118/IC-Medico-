@@ -13,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.sql import func
 from sqlalchemy.types import Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, date as date_type
 from .database import Base
 
 
@@ -31,6 +31,16 @@ class Paciente(Base):
         back_populates="paciente",
         cascade="all, delete-orphan"
     )
+
+    def calcular_idade(self) -> int:
+        """Calcula a idade em anos baseado na data de nascimento"""
+        if not self.data_nascimento:
+            return 0
+        hoje = date_type.today()
+        idade = hoje.year - self.data_nascimento.year
+        if (hoje.month, hoje.day) < (self.data_nascimento.month, self.data_nascimento.day):
+            idade -= 1
+        return idade
 
 
 class TipoConteudoLaudo(enum.Enum):
