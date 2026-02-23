@@ -157,3 +157,24 @@ class Exame(Base):
 
     # relacionamento
     laudo = relationship("LaudoPaciente", back_populates="exames")
+
+
+class LaudoChunks(Base):
+    __tablename__ = "laudo_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    laudo_id = Column(
+        Integer,
+        ForeignKey("laudo_paciente.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    conteudo_chunk = Column(Text, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    embedding = Column(Text, nullable=False)  # JSON array
+
+    criado_em = Column(DateTime, server_default=func.now())
+
+    # relacionamento
+    laudo = relationship("LaudoPaciente")
