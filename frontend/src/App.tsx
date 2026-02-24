@@ -15,6 +15,7 @@ import {
   FileStack,
   UserPlus,
 } from "lucide-react";
+import { Route, Routes } from "react-router-dom";
 
 export type Patient = {
   id: string;
@@ -45,14 +46,14 @@ export type ReportTemplate = {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<
-      "dashboard" | "patients" | "reports" | "chat" | "templates" | "registration"
+    "dashboard" | "patients" | "reports" | "chat" | "templates" | "registration"
   >("dashboard");
   const [selectedPatient, setSelectedPatient] =
     useState<Patient | null>(null);
-    
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [templates, setTemplates] = useState<ReportTemplate[]>([
-    
+
     {
       id: "1",
       name: "Raio-X de Tórax Normal",
@@ -88,9 +89,8 @@ export default function App() {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`${
-          isSidebarOpen ? "w-64" : "w-0"
-        } bg-blue-600 text-white transition-all duration-300 overflow-hidden relative`}
+        className={`${isSidebarOpen ? "w-64" : "w-0"
+          } bg-blue-600 text-white transition-all duration-300 overflow-hidden relative`}
       >
         <div className="p-6">
           <h1 className="text-2xl font-bold mb-8">
@@ -100,52 +100,48 @@ export default function App() {
           <nav className="space-y-2">
             <button
               onClick={() => setCurrentView("dashboard")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "dashboard"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === "dashboard"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
             >
               <Menu size={20} />
               <span>Dashboard</span>
             </button>
-<button
-  onClick={() => {
-    setCurrentView("registration");
-  }}
-  className={`w-full h-12 flex items-center gap-3 px-4 rounded-lg transition-colors ${
-    currentView === "registration"
-      ? "bg-blue-700"
-      : "hover:bg-blue-500"
-  }`}
->
-  <UserPlus size={20} className="flex-shrink-0" />
-  <span className="leading-none">Cadastro</span>
-</button>
+            <button
+              onClick={() => {
+                setCurrentView("registration");
+              }}
+              className={`w-full h-12 flex items-center gap-3 px-4 rounded-lg transition-colors ${currentView === "registration"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
+            >
+              <UserPlus size={20} className="flex-shrink-0" />
+              <span className="leading-none">Cadastro</span>
+            </button>
 
 
             <button
               onClick={() => setCurrentView("patients")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "patients"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === "patients"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
 
-              
+
             >
-              
+
               <Users size={20} />
               <span>Pacientes</span>
             </button>
 
             <button
               onClick={() => setCurrentView("reports")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "reports"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === "reports"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
             >
               <FileText size={20} />
               <span>Laudos</span>
@@ -153,11 +149,10 @@ export default function App() {
 
             <button
               onClick={() => setCurrentView("templates")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "templates"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === "templates"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
             >
               <FileStack size={20} />
               <span>Modelos de Laudos</span>
@@ -165,11 +160,10 @@ export default function App() {
 
             <button
               onClick={() => setCurrentView("chat")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "chat"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-500"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === "chat"
+                ? "bg-blue-700"
+                : "hover:bg-blue-500"
+                }`}
             >
               <MessageSquare size={20} />
               <span>IA Assistente</span>
@@ -217,9 +211,9 @@ export default function App() {
             <Dashboard onNavigate={setCurrentView} />
           )}
 
- {currentView === "registration" && (
-    <PatientRegistration />
-  )}
+          {currentView === "registration" && (
+            <PatientRegistration />
+          )}
 
           {currentView === "patients" && (
             <PatientList
@@ -241,6 +235,7 @@ export default function App() {
           )}
           {currentView === "chat" && <AIChat />}
         </main>
+
 
         <Toaster richColors position="top-right" />
       </div>
