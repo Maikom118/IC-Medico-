@@ -178,3 +178,25 @@ class LaudoChunks(Base):
 
     # relacionamento
     laudo = relationship("LaudoPaciente")
+
+
+class Medico(Base):
+    __tablename__ = "medico"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    senha_hash = Column(String(255), nullable=False)
+    criado_em = Column(DateTime, server_default=func.now())
+    atualizado_em = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Secretaria(Base):
+    __tablename__ = "secretaria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    senha_hash = Column(String(255), nullable=False)
+    criado_em = Column(DateTime, server_default=func.now())
+    atualizado_em = Column(DateTime, server_default=func.now(), onupdate=func.now())

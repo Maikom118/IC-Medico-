@@ -144,4 +144,44 @@ class ExameOut(ExameBase):
     data_upload: datetime
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+
+# ---------- MÉDICO ----------
+
+class MedicoBase(BaseModel):
+    nome: str
+    email: EmailStr
+
+
+class MedicoCreate(MedicoBase):
+    senha: str
+
+
+class MedicoResponse(MedicoBase):
+    id: int
+    criado_em: datetime
+    atualizado_em: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- SECRETÁRIA ----------
+
+class SecretariaBase(BaseModel):
+    nome: str
+    email: EmailStr
+
+
+class SecretariaCreate(SecretariaBase):
+    senha: str
+
+
+class SecretariaResponse(SecretariaBase):
+    id: int
+    criado_em: datetime
+    atualizado_em: datetime
+
+    class Config:
+        from_attributes = True
