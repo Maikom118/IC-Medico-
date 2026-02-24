@@ -1,121 +1,222 @@
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
-import { Mail, Lock, Eye, EyeOff, Stethoscope } from "lucide-react";
-import { useState } from "react";
+import { useState, FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Shield,
+  Cpu,
+  Brain,
+  Sparkles,
+} from "lucide-react";
+import "./index.css";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      alert("Preencha todos os campos.");
+      return;
+    }
+
+    let adminTest = {
+      admin: "admin@email.com",
+      password: "12345"
+    }
+
+    console.log("Login funcionando...");
+
+    if (email === adminTest.admin && password === adminTest.password) {
+      navigate("/dashboard");
+      console.log({
+        email,
+        password,
+        rememberMe,
+      });
+    } else {
+      alert("Credenciais inválidas");
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      {/* Elementos decorativos de fundo */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100/50 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-blue-100/50 blur-3xl" />
+    <div className="login-container">
+      {/* Lado esquerdo */}
+      <div className="login-image-side">
+        <div className="image-overlay" />
+        <div className="image-content">
+          <div className="brand-badge">
+            <span>MediPlataforma</span>
+          </div>
+
+          <h1 className="image-title">
+            IA que Potencializa <br />
+            suas Decisões Clínicas
+          </h1>
+
+          <p className="image-description">
+            Assistente de IA conversacional para apoio clínico em tempo real.
+            Organização inteligente e automatizada de dados médicos para reduzir
+            o tempo de análise e aumentar a segurança na tomada de decisão.
+          </p>
+
+          <div className="features-list">
+            <div className="feature-item">
+              <div className="feature-icon">
+                <Cpu />
+              </div>
+              <div className="feature-text">
+                <strong>Assistente IA em Tempo Real</strong>
+                <span>Suporte clínico instantâneo durante consultas</span>
+              </div>
+            </div>
+
+            <div className="feature-item">
+              <div className="feature-icon">
+                <Brain />
+              </div>
+              <div className="feature-text">
+                <strong>Organização Automatizada</strong>
+                <span>
+                  Dados clínicos estruturados por inteligência artificial
+                </span>
+              </div>
+            </div>
+
+            <div className="feature-item">
+              <div className="feature-icon">
+                <Sparkles />
+              </div>
+              <div className="feature-text">
+                <strong>Análise Inteligente</strong>
+                <span>Redução de tempo e mais segurança diagnóstica</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Card de login */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-8">
-          {/* Logo e título */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white mb-4 shadow-lg shadow-blue-200">
-              <Stethoscope className="w-8 h-8" />
+      {/* Lado direito */}
+      <div className="login-form-side">
+        <div className="form-wrapper">
+          <div className="form-header">
+            <div className="mobile-brand">
+              <Brain className="mobile-brand-icon" />
+              <span>MediPlataforma</span>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              MediPlataforma
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Faça login para acessar sua conta
+
+            <h2 className="form-title">Acessar plataforma</h2>
+            <p className="form-subtitle">
+              Entre para utilizar o assistente inteligente e otimizar seu
+              atendimento clínico.
             </p>
           </div>
 
-          <form className="space-y-5">
-            {/* Campo de email */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 block">
-                E-mail
+          <form className="login-form" onSubmit={handleSubmit}>
+            {/* Email */}
+            <div className="input-field">
+              <label htmlFor="email" className="input-label">
+                E-mail profissional
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
+              <div className="input-wrapper">
+                <Mail className="input-icon" />
+                <input
                   type="email"
-                  placeholder="seu@email.com"
+                  id="email"
+                  placeholder="medico@clinicaparceira.com.br"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                  className="form-input"
+                  required
                 />
               </div>
             </div>
 
-            {/* Campo de senha */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">
+            {/* Senha */}
+            <div className="input-field">
+              <div className="password-header">
+                <label htmlFor="password" className="input-label">
                   Senha
                 </label>
-                <button
-                  type="button"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                >
-                  Esqueceu a senha?
-                </button>
+                <Link to="/forgot-password" className="forgot-link">
+                  Recuperar acesso
+                </Link>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
+
+              <div className="input-wrapper">
+                <Lock className="input-icon" />
+                <input
                   type={showPassword ? "text" : "password"}
+                  id="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                  className="form-input"
+                  required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="password-toggle"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <Eye /> : <EyeOff />}
                 </button>
               </div>
             </div>
 
-            {/* Checkbox lembrar */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="remember"
-                className="w-4 h-4 text-blue-600 bg-gray-50 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <label htmlFor="remember" className="ml-2 text-sm text-gray-600">
-                Lembrar-me
+            {/* Lembrar-me */}
+            <div className="form-options">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="checkbox-input"
+                />
+                <span className="checkbox-text">Manter conectado</span>
               </label>
             </div>
 
-            {/* Botão de login */}
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2.5 rounded-lg shadow-lg shadow-blue-200 hover:shadow-xl transition-all duration-200"
-            >
-              Entrar
-            </Button>
+            {/* Botão */}
+            <button type="submit" className="login-btn">
+              <span>Entrar</span>
+              <ArrowRight className="btn-icon" />
+            </button>
+
+            {/* Cadastro */}
+            <p className="register-text">
+              Ainda não utiliza IA no seu consultório?{" "}
+              <Link to="/register" className="register-link">
+                Ativar acesso agora
+              </Link>
+            </p>
           </form>
 
-          {/* Link para cadastro */}
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Não tem uma conta?{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
-              Cadastre-se
-            </a>
-          </p>
+          {/* Selos */}
+          <div className="security-badges">
+            <div className="security-badge">
+              <Brain className="badge-icon" />
+              <span>IA em tempo real</span>
+            </div>
+            <div className="security-badge">
+              <Shield className="badge-icon" />
+              <span>LGPD</span>
+            </div>
+            <div className="security-badge">
+              <Sparkles className="badge-icon" />
+              <span>CFM</span>
+            </div>
+          </div>
         </div>
-
-        {/* Créditos/versão */}
-        <p className="text-center text-xs text-gray-400 mt-4">
-          © 2026 MediPlataforma. Todos os direitos reservados.
-        </p>
       </div>
     </div>
   );
