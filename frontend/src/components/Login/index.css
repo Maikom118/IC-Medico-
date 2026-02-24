@@ -1,0 +1,249 @@
+#LoginPage {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  position: relative;
+}
+
+#LoginPage .container-form-login {
+  max-width: 400px;
+  width: 90%;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header do login */
+#LoginPage .login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+#LoginPage .login-header h1 {
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+  font-size: 1.875rem;
+}
+
+#LoginPage .login-header p {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+#LoginPage .container-form-login form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Wrapper de input */
+#LoginPage .input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#LoginPage .input-wrapper label {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Header da senha */
+#LoginPage .password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#LoginPage .forgot-password {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+#LoginPage .forgot-password:hover {
+  color: var(--foreground);
+}
+
+/* Grupos de input */
+#LoginPage .input-group {
+  position: relative;
+  width: 100%;
+}
+
+#LoginPage .input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  transition: color 0.2s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#LoginPage .input-group:focus-within .input-icon {
+  color: var(--foreground);
+}
+
+#LoginPage .login-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem !important;
+  background: var(--input-background) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--foreground) !important;
+  transition: all 0.2s ease !important;
+}
+
+#LoginPage .login-input:focus {
+  border-color: var(--ring) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--ring) !important;
+}
+
+#LoginPage .login-input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+/* Botão de mostrar senha */
+#LoginPage .password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+#LoginPage .password-toggle:hover {
+  color: var(--foreground);
+}
+
+/* Opções do formulário */
+#LoginPage .form-options {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+#LoginPage .remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+#LoginPage .remember-me input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--input-background);
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+#LoginPage .remember-me span {
+  color: var(--muted-foreground);
+}
+
+/* Botão de login */
+#LoginPage .login-button {
+  width: 100% !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0.75rem !important;
+  font-weight: var(--font-weight-medium) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  transition: opacity 0.2s ease !important;
+}
+
+#LoginPage .login-button:hover {
+  opacity: 0.9;
+}
+
+#LoginPage .login-button:active {
+  opacity: 0.8;
+}
+
+/* Link de registro */
+#LoginPage .register-link {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+#LoginPage .register-link p {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+#LoginPage .register-link a {
+  color: var(--foreground);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: opacity 0.2s ease;
+}
+
+#LoginPage .register-link a:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  #LoginPage .container-form-login {
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  #LoginPage .login-header h1 {
+    font-size: 1.5rem;
+  }
+
+  #LoginPage .password-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+/* Dark mode - já está sendo gerenciado pelas variáveis CSS */
+/* O tema escuro será aplicado automaticamente quando a classe .dark estiver presente */
