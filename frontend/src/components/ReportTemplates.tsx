@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, FileText, X, Save } from 'lucide-react';
-import type { ReportTemplate } from '../App';
+import type { ReportTemplate } from '../__App';
 
 
 type TipoLaudo = {

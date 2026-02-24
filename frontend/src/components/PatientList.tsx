@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Eye, Edit, Trash2 } from 'lucide-react';
-import type { Patient } from '../App';
+import type { Patient } from '../__App';
 import { calcularIdade } from '../utils/dateUtils';
 
 type PatientListProps = {

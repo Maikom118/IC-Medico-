@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter } from "react-router-dom";
-import App from "./App";
+import App from "./__App";
 import "./index.css";
 import RoutesPages from "./Routes";
 

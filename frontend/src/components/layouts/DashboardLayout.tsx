@@ -31,7 +31,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      
+
       {/* =========================
           SIDEBAR
          ========================= */}
@@ -106,27 +106,25 @@ export default function DashboardLayout() {
             HEADER
            ========================= */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          
-          {/* Botão que abre/fecha a sidebar */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Menu size={24} />
           </button>
 
-          {/* Informações do usuário logado */}
           <div className="flex items-center gap-4">
-            <span className="text-gray-600 text-sm">
-              Dr. João Silva
-            </span>
-
-            {/* Avatar do usuário */}
-            <img
-              src="https://i.pravatar.cc/40"
-              alt="avatar"
-              className="w-10 h-10 rounded-full"
-            />
+            <div className="text-right">
+              <p className="text-sm font-medium">
+                Dr. João Silva
+              </p>
+              <p className="text-xs text-gray-500">
+                Radiologista
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+              JS
+            </div>
           </div>
         </header>
 
