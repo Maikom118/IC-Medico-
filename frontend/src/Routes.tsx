@@ -8,6 +8,7 @@ import { ReportEditor } from "./components/ReportEditor";
 import { AIChat } from "./components/AIChat";
 import { ReportTemplates } from "./components/ReportTemplates";
 import { PatientRegistration } from "./components/PatientRegistration";
+import QuadroLaudo from "./components/QuadroLaudo";
 
 export default function App() {
   return (
@@ -28,6 +29,8 @@ export default function App() {
         <Route path="/reports" element={<ReportEditor />} />
         <Route path="/templates" element={<ReportTemplates />} />
         <Route path="/chat" element={<AIChat />} />
+        <Route path="/quadrolaudo" element={<QuadroLaudo />} />
+
       </Route>
 
     </Routes>
