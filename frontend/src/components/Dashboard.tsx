@@ -1,13 +1,12 @@
 import { Users, FileText, Clock, TrendingUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-
-type DashboardProps = {
-  onNavigate: (view: 'dashboard' | 'patients' | 'reports' | 'chat' | 'templates') => void;
-};
+import { useNavigate } from 'react-router-dom';
 
 type ReportStatus = 'Pendente' | 'Em Andamento' | 'Concluído' | 'Revisado';
 
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate();
+
   const [reports, setReports] = useState([
     { id: '1', patient: 'Maria Santos', type: 'Raio-X Tórax', date: '2026-01-07', status: 'Concluído' as ReportStatus },
     { id: '2', patient: 'João Oliveira', type: 'Tomografia', date: '2026-01-07', status: 'Concluído' as ReportStatus },
@@ -16,7 +15,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   ]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -89,7 +88,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-gray-800">Laudos Recentes</h3>
           <button 
-            onClick={() => onNavigate('reports')}
+            onClick={() => navigate('/reports')}
             className="text-blue-600 hover:text-blue-700 font-medium text-sm"
           >
             Ver todos
