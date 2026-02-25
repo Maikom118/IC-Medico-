@@ -1,0 +1,81 @@
+FROM node:20-bullseye
+
+# Instalar dependências do sistema (Tesseract OCR, FFmpeg e Python)
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    tesseract-ocr-por \
+    ffmpeg \
+    python3 \
+    python3-pip \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar diretórios de trabalho
+WORKDIR /app
+
+# ============================================
+# CONFIGURAÇÃO DO SERVIÇO DE TRANSCRIÇÃO (Python)
+# ============================================
+WORKDIR /app/Transcricao
+
+# Copiar arquivos de transcrição
+COPY Transcricao/ .
+
+# Instalar dependências Python
+RUN pip3 install --no-cache-dir \
+    fastapi \
+    uvicorn[standard] \
+    python-multipart \
+    openai-whisper \
+    httpx
+
+# ============================================
+# CONFIGURAÇÃO DO SERVIÇO DE OCR (Node.js)
+# ============================================
+WORKDIR /app/OCR
+
+# Copiar package.json e instalar dependências
+COPY OCR/package.json ./
+RUN npm install
+
+# Copiar demais arquivos do OCR
+COPY OCR/ .
+
+# Copiar arquivo de dados do Tesseract se necessário
+COPY por.traineddata /usr/share/tesseract-ocr/4.00/tessdata/ 2>/dev/null || true
+
+# ============================================
+# CONFIGURAÇÃO DO SUPERVISOR
+# ============================================
+WORKDIR /app
+
+# Criar arquivo de configuração do Supervisor
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+logfile=/var/log/supervisor/supervisord.log\n\
+pidfile=/var/run/supervisord.pid\n\
+\n\
+[program:transcricao]\n\
+command=python3 /app/Transcricao/main.py\n\
+directory=/app/Transcricao\n\
+autostart=true\n\
+autorestart=true\n\
+stderr_logfile=/var/log/transcricao.err.log\n\
+stdout_logfile=/var/log/transcricao.out.log\n\
+\n\
+[program:ocr]\n\
+command=node /app/OCR/server.js\n\
+directory=/app/OCR\n\
+autostart=true\n\
+autorestart=true\n\
+stderr_logfile=/var/log/ocr.err.log\n\
+stdout_logfile=/var/log/ocr.out.log' > /etc/supervisor/conf.d/services.conf
+
+# Criar diretórios de log
+RUN mkdir -p /var/log/supervisor
+
+# Expor as portas dos serviços
+EXPOSE 8000 8300
+
+# Iniciar o supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

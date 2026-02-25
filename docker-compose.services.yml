@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ocr-transcricao:
+    build:
+      context: .
+      dockerfile: Dockerfile.services
+    container_name: ic-medico-services
+    ports:
+      - "8000:8000"  # Porta do OCR
+      - "8300:8300"  # Porta da Transcrição
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Opcional: mapear volumes para logs
+      - ./logs:/var/log
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000", "http://localhost:8300"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  ic-medico-network:
+    driver: bridge

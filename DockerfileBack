@@ -1,0 +1,22 @@
+FROM node:20-bullseye
+
+# Dependências do sistema
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    ffmpeg \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Whisper
+RUN pip3 install -U openai-whisper
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]
