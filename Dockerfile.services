@@ -42,7 +42,7 @@ RUN npm install
 COPY OCR/ .
 
 # Copiar arquivo de dados do Tesseract se necessário
-COPY por.traineddata /usr/share/tesseract-ocr/4.00/tessdata/ 2>/dev/null || true
+
 
 # ============================================
 # CONFIGURAÇÃO DO SUPERVISOR
