@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # ================================
+  # BACKEND API (FastAPI)
+  # ================================
+  backend:
+    build:
+      context: ./backend/models/Database
+      dockerfile: Dockerfile
+    container_name: ic-medico-backend
+    ports:
+      - "8100:8100"
+    environment:
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-ic_medico}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./backend/models/Database/uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+
+  # ================================
+  # OCR SERVICE (Node.js)
+  # ================================
+  ocr:
+    build:
+      context: ./OCR
+      dockerfile: Dockerfile
+    container_name: ic-medico-ocr
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+
+  # ================================
+  # TRANSCRIÇÃO SERVICE (Python)
+  # ================================
+  transcricao:
+    build:
+      context: ./Transcricao
+      dockerfile: Dockerfile
+    container_name: ic-medico-transcricao
+    ports:
+      - "8300:8300"
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+networks:
+  ic-medico-network:
+    driver: bridge

@@ -1,0 +1,95 @@
+# Configuração Dokploy para IC-Medico
+# Este arquivo pode ser usado como referência no painel Dokploy
+
+version: '1.0'
+
+project:
+  name: ic-medico
+  description: Sistema Médico Integrado com OCR e Transcrição IA
+
+services:
+  - name: backend-api
+    type: dockerfile
+    repository: https://github.com/seu-usuario/IC-Medico--1.git
+    branch: prod
+    dockerfile: backend/models/Database/Dockerfile
+    buildContext: backend/models/Database
+    port: 8100
+    env:
+      - DB_HOST=seu-db-host
+      - DB_PORT=5432
+      - DB_NAME=ic_medico
+      - DB_USER=postgres
+      - DB_PASSWORD=SUA_SENHA_AQUI
+    domains:
+      - domain: iamedbr.com
+        paths:
+          - /pacientes
+          - /laudos
+          - /exames
+          - /audios
+          - /uploads
+    healthCheck:
+      path: /
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    resources:
+      memory: 1GB
+      cpu: 1
+
+  - name: ocr-service
+    type: dockerfile
+    repository: https://github.com/seu-usuario/IC-Medico--1.git
+    branch: main
+    dockerfile: OCR/Dockerfile
+    buildContext: OCR
+    port: 8000
+    domains:
+      - domain: iamedbr.com
+        paths:
+          - /api/ocr
+          - /api/rg
+    healthCheck:
+      path: /
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    resources:
+      memory: 512MB
+      cpu: 0.5
+
+  - name: transcricao-service
+    type: dockerfile
+    repository: https://github.com/seu-usuario/IC-Medico--1.git
+    branch: main
+    dockerfile: Transcricao/Dockerfile
+    buildContext: Transcricao
+    port: 8300
+    domains:
+      - domain: iamedbr.com
+        paths:
+          - /transcrever-e-gerar-laudo
+    healthCheck:
+      path: /
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    resources:
+      memory: 4GB
+      cpu: 2
+
+ssl:
+  enabled: true
+  provider: letsencrypt
+  email: seu-email@exemplo.com
+
+monitoring:
+  enabled: true
+  alerting:
+    email: seu-email@exemplo.com
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Diário às 2h
+  retention: 7  # 7 dias

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.git/
+.env
+.env.local
+*.md
+README
+sklearn-env/
