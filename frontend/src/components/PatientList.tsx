@@ -12,7 +12,7 @@ export function PatientList({ onPatientSelect }: PatientListProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
 
   useEffect(() => {
-    fetch('https://api.iamedbr.com/pacientes')
+    fetch('http://localhost:8100/pacientes')
       .then(res => res.json())
       .then(data => {
         const mapped: Patient[] = data.map((p: any) => ({

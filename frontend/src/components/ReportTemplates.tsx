@@ -63,7 +63,7 @@ const [usingTemplate, setUsingTemplate] = useState<Template | null>(null);
   /* Buscar laudo base do backend */
 useEffect(() => {
   async function loadTemplates() {
-    const res = await fetch('https://api.iamedbr.com/laudos/base');
+    const res = await fetch('http://localhost:8100/laudos/base');
     const data: ApiReportTemplate[] = await res.json();
 
     const mapped: Template[] = data.map((t) => ({
@@ -103,7 +103,7 @@ const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   /* Buscar categorias do backend */
  useEffect(() => {
-  fetch('https://api.iamedbr.com/laudos/tipos')
+  fetch('http://localhost:8100/laudos/tipos')
     .then(res => res.json())
     .then(data => setCategorias(data))
     .catch(err => console.error('Erro ao buscar categorias', err));
@@ -131,7 +131,7 @@ if (selectedPdfFile) {
 for (const [key, value] of formData.entries()) {
   console.log(key, value);
 }
-    const response = await fetch("https://api.iamedbr.com/laudos/base", {
+    const response = await fetch("http://localhost:8100/laudos/base", {
       method: "POST",
       body: formData, // ⚠️ SEM headers
     });
@@ -163,7 +163,7 @@ const enviarLaudoPaciente = async (file: File) => {
 for (const pair of formData.entries()) {
   console.log(pair[0], pair[1]);
 }
-  const response = await fetch('https://api.iamedbr.com/laudos/paciente', {
+  const response = await fetch('http://localhost:8100/laudos/paciente', {
     method: 'POST',
     body: formData, // ⚠️ SEM headers
   });

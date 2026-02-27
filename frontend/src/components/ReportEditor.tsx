@@ -179,7 +179,7 @@ useEffect(() => {
   if (!laudoId) return;
 
   const fetchExames = async () => {
-    const res = await fetch(`https://api.iamedbr.com/exames/laudos/${laudoId}/exames`);
+    const res = await fetch(`http://localhost:8100/exames/laudos/${laudoId}/exames`);
     if (!res.ok) return;
 
     const data: ExameDto[] = await res.json();
@@ -225,11 +225,11 @@ useEffect(() => {
     setSelectedLaudoFromList(null);
 
     // Buscar todos os laudos do paciente
-    fetch(`https://api.iamedbr.com/laudos/paciente/${selectedPatientLocal.id}/todos`)
+    fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}/todos`)
       .then(async res => {
         if (!res.ok) {
           // Se não existir endpoint /todos, tentar o antigo
-          const oldRes = await fetch(`https://api.iamedbr.com/laudos/paciente/${selectedPatientLocal.id}`);
+          const oldRes = await fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}`);
           if (!oldRes.ok) return [];
           const singleLaudo = await oldRes.json();
           return singleLaudo ? [singleLaudo] : [];
@@ -257,7 +257,7 @@ useEffect(() => {
 
 
  useEffect(() => {
-  fetch("https://api.iamedbr.com/pacientes")
+  fetch("http://localhost:8100/pacientes")
     .then(res => {
       if (!res.ok) throw new Error("Erro ao buscar pacientes");
       return res.json();
@@ -268,7 +268,7 @@ useEffect(() => {
 
 
  useEffect(() => {
-  fetch("https://api.iamedbr.com/laudos/tipos")
+  fetch("http://localhost:8100/laudos/tipos")
     .then(res => res.json())
     .then(data => setCategorias(data))
     .catch(err => console.error("Erro ao buscar categorias", err));
@@ -307,7 +307,7 @@ useEffect(() => {
 async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
   try {
     const response = await fetch(
-      `https://api.iamedbr.com/audios/laudos/${laudoId}`
+      `http://localhost:8100/audios/laudos/${laudoId}`
     );
 
     if (!response.ok) {
@@ -325,7 +325,7 @@ async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
 // Função para carregar um laudo específico
 const carregarLaudo = async (laudoId: number) => {
   try {
-    const response = await fetch(`https://api.iamedbr.com/laudos/${laudoId}`);
+    const response = await fetch(`http://localhost:8100/laudos/${laudoId}`);
     if (!response.ok) {
       throw new Error("Erro ao buscar laudo");
     }
@@ -396,7 +396,7 @@ const handleSaveExames = async (laudoId: number, files: File[]) => {
   formData.append("descricao", "Imagem do exame");
 
   try {
-    const res = await fetch(`https://api.iamedbr.com/exames/laudos/${laudoId}/exames`, {
+    const res = await fetch(`http://localhost:8100/exames/laudos/${laudoId}/exames`, {
       method: "POST",
       body: formData,
     });
@@ -435,7 +435,7 @@ const handleSaveAudio = async (laudoId: number) => {
   formData.append("audio", recordedAudioBlob, "audio.webm");
 
   const response = await fetch(
-    `https://api.iamedbr.com/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
+    `http://localhost:8100/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
     {
       method: "POST",
       body: formData,
@@ -482,8 +482,8 @@ const handleSaveReport = async (): Promise<number | null> => {
 
     const response = await fetch(
       isUpdate
-        ? `https://api.iamedbr.com/laudos/paciente/${currentReportId}`
-        : `https://api.iamedbr.com/laudos/paciente`,
+        ? `http://localhost:8100/laudos/paciente/${currentReportId}`
+        : `http://localhost:8100/laudos/paciente`,
       {
         method: isUpdate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -577,7 +577,7 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 const removeBackendExame = async (exameId: number) => {
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`https://api.iamedbr.com/exames/${exameId}`, {
+      const response = await fetch(`http://localhost:8100/exames/${exameId}`, {
         method: 'DELETE',
       });
 
@@ -794,7 +794,7 @@ mediaRecorder.onstop = () => {
   const removeBackendAudio = async (audioId: number) => {
     const confirmDelete = async () => {
       try {
-        const response = await fetch(`https://api.iamedbr.com/audios/${audioId}`, {
+        const response = await fetch(`http://localhost:8100/audios/${audioId}`, {
           method: 'DELETE',
         });
 
@@ -858,7 +858,7 @@ mediaRecorder.onstop = () => {
       );
 
       const response = await fetch(
-        'https://transcription.iamedbr.com/transcrever-e-gerar-laudo',
+        'http://localhost:8300/transcrever-e-gerar-laudo',
         {
           method: 'POST',
           body: formData,
@@ -920,7 +920,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
   formData.append("file", audioBlob, "gravacao.webm");
 
   const response = await fetch(
-    `https://api.iamedbr.com/laudos/${laudoId}/audio`,
+    `http://localhost:8100/laudos/${laudoId}/audio`,
     {
       method: "POST",
       body: formData,
@@ -955,7 +955,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
     );
 
     const response = await fetch(
-      "https://transcription.iamedbr.com/transcrever-e-gerar-laudo",
+      "http://localhost:8300/transcrever-e-gerar-laudo",
       {
         method: "POST",
         body: formData,
