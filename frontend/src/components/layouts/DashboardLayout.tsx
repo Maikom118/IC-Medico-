@@ -85,6 +85,12 @@ export default function DashboardLayout() {
               onClick={() => navigate("/chat")}
             />
 
+            <NavButton
+              icon={<FileText size={20} />}
+              text="Gestão de laudo"
+              onClick={() => navigate("/gestao-de-laudos")}
+            />
+
           </nav>
         </div>
 
