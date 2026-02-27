@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8100";
+const API_URL = "https://api.iamedbr.com";
 
 // CREATE
 export async function criarPaciente(paciente: any) {

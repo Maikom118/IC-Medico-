@@ -36,8 +36,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "https://iamedbr.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -96,7 +95,7 @@ async def transcrever_e_gerar_laudo(
         # 2️⃣ Chama IA de laudo (ASSÍNCRONO)
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
-                "http://127.0.0.1:8200/gerar-laudo",
+                "https://api.iamedbr.com/gerar-laudo",
                 json={ "sintomas": texto }
             )
 

@@ -19,7 +19,7 @@ app = FastAPI()
 # 🚨 CORS — isso é OBRIGATÓRIO no browser
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Vite
+    allow_origins=["https://iamedbr.com"],  # Produção
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

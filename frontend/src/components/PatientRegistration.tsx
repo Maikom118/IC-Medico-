@@ -96,7 +96,7 @@ async function sendRGToOCR() {
   formDataReq.append('imagem', file);
 
   try {
-    const response = await fetch('http://localhost:8000/api/ocr', {
+    const response = await fetch('https://ocr.iamedbr.com/api/ocr', {
       method: 'POST',
       body: formDataReq
     });
@@ -133,7 +133,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch('http://localhost:8000/api/rg/ultimo');
+    const response = await fetch('https://ocr.iamedbr.com/api/rg/ultimo');
     if (!response.ok) return;
 
     const result = await response.json();
