@@ -1,0 +1,111 @@
+# ================================================
+# .htaccess para iamedbr.com - Hostinger
+# ================================================
+
+# Habilitar RewriteEngine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # ================================================
+    # 1. FORCE HTTPS (SSL)
+    # ================================================
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # ================================================
+    # 2. REDIRECIONAR WWW (opcional - descomente se quiser)
+    # ================================================
+    # RewriteCond %{HTTP_HOST} ^www\.iamedbr\.com$ [NC]
+    # RewriteRule ^(.*)$ https://iamedbr.com/$1 [L,R=301]
+
+    # ================================================
+    # 3. PROXY REVERSO PARA BACKEND (API)
+    # ================================================
+    # Backend principal
+    RewriteCond %{REQUEST_URI} ^/pacientes [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/laudos [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/audios [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/exames [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/uploads [NC]
+    RewriteRule ^(.*)$ http://127.0.0.1:8100/$1 [P,L]
+
+    # OCR Service
+    RewriteRule ^api/ocr(.*)$ http://127.0.0.1:8000/api/ocr$1 [P,L]
+    RewriteRule ^api/rg/(.*)$ http://127.0.0.1:8000/api/rg/$1 [P,L]
+
+    # Transcrição Service
+    RewriteRule ^transcrever-e-gerar-laudo(.*)$ http://127.0.0.1:8300/transcrever-e-gerar-laudo$1 [P,L]
+
+    # ================================================
+    # 4. HABILITAR CORS HEADERS
+    # ================================================
+    <IfModule mod_headers.c>
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    </IfModule>
+
+    # ================================================
+    # 5. SPA - Single Page Application
+    # ================================================
+    # Redirecionar todas as requisições para index.html
+    # (exceto arquivos e diretórios existentes)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api/ [NC]
+    RewriteRule . /index.html [L]
+</IfModule>
+
+# ================================================
+# 6. COMPRESSÃO GZIP
+# ================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# ================================================
+# 7. CACHE BROWSER
+# ================================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # HTML (sem cache)
+    ExpiresByType text/html "access plus 0 seconds"
+    
+    # CSS e JavaScript (1 ano)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    
+    # Imagens (1 mês)
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    
+    # Fontes (1 ano)
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+</IfModule>
+
+# ================================================
+# 8. SEGURANÇA
+# ================================================
+# Desabilitar listagem de diretórios
+Options -Indexes
+
+# Proteger arquivos sensíveis
+<FilesMatch "^(\.env|\.git|composer\.json|package\.json)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Headers de segurança
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
