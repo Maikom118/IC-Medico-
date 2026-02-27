@@ -102,6 +102,10 @@ const [audioFiles, setAudioFiles] = useState<File[]>([]);
 const [recordedAudioDuration, setRecordedAudioDuration] = useState<number>(0);
   
 const [categorias, setCategorias] = useState<TipoLaudo[]>([]);
+const [laudosList, setLaudosList] = useState<any[]>([]);
+const [selectedLaudoFromList, setSelectedLaudoFromList] = useState<number | null>(null);
+const [showLaudosDropdown, setShowLaudosDropdown] = useState(false);
+const [showConfirmNewReport, setShowConfirmNewReport] = useState(false);
 const [selectedTipoLaudoId, setSelectedTipoLaudoId] = useState<number | "">("");
 
 
@@ -202,45 +206,49 @@ useEffect(() => {
     });
   }, [selectedPatient]);
   
-  // Load report when patient is selected
+  // Load reports list when patient is selected
   useEffect(() => {
-    if (!selectedPatientLocal) return;
+    if (!selectedPatientLocal) {
+      setLaudosList([]);
+      setSelectedLaudoFromList(null);
+      return;
+    }
 
     // Resetar dados para evitar exibir laudo anterior ao trocar de paciente
     setLaudoId(null);
     setAudios([]);
     setExames([]);
+    setReportContent("");
+    setReportStatus("in-progress");
+    setCurrentReportId(null);
+    setSelectedTipoLaudoId("");
+    setSelectedLaudoFromList(null);
 
-    fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}`)
+    // Buscar todos os laudos do paciente
+    fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}/todos`)
       .then(async res => {
         if (!res.ok) {
-          throw new Error("Erro ao buscar laudo");
+          // Se não existir endpoint /todos, tentar o antigo
+          const oldRes = await fetch(`http://localhost:8100/laudos/paciente/${selectedPatientLocal.id}`);
+          if (!oldRes.ok) return [];
+          const singleLaudo = await oldRes.json();
+          return singleLaudo ? [singleLaudo] : [];
         }
-
-        return res.json(); // pode ser objeto OU null
+        return res.json();
       })
-      .then(patientReport => {
-        if (!patientReport) {
-          // 🟢 paciente ainda não tem laudo
-          setReportContent("");
-          setReportStatus("in-progress");
-          setCurrentReportId(null);
-          setSelectedTipoLaudoId("");
-          setLaudoId(null);
-          setAudios([]);
-          setExames([]);
-          return;
+      .then(laudos => {
+        setLaudosList(laudos || []);
+        
+        // Se houver laudos, selecionar o mais recente automaticamente
+        if (laudos && laudos.length > 0) {
+          const maisRecente = laudos[0];
+          setSelectedLaudoFromList(maisRecente.id);
+          carregarLaudo(maisRecente.id);
         }
-
-        // 🟢 paciente já tem laudo
-        setReportContent(patientReport.conteudo ?? "");
-        setReportStatus(patientReport.status ?? "in-progress");
-        setCurrentReportId(patientReport.id);
-        setLaudoId(patientReport.id); // 🔥 ESSENCIAL
-        setSelectedTipoLaudoId(patientReport.tipo_laudo_id);
       })
       .catch(err => {
-        console.error("Erro ao carregar laudo do paciente", err);
+        console.error("Erro ao carregar laudos do paciente", err);
+        setLaudosList([]);
       });
   }, [selectedPatientLocal]);
 
@@ -313,6 +321,31 @@ async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
     return [];
   }
 }
+
+// Função para carregar um laudo específico
+const carregarLaudo = async (laudoId: number) => {
+  try {
+    const response = await fetch(`http://localhost:8100/laudos/${laudoId}`);
+    if (!response.ok) {
+      throw new Error("Erro ao buscar laudo");
+    }
+
+    const laudo = await response.json();
+    
+    setReportContent(laudo.conteudo ?? "");
+    setReportStatus(laudo.status ?? "in-progress");
+    setCurrentReportId(laudo.id);
+    setLaudoId(laudo.id);
+    setSelectedTipoLaudoId(laudo.tipo_laudo_id);
+    
+    // Buscar tipo de laudo
+    const categoria = categorias.find(c => c.id === laudo.tipo_laudo_id);
+    setReportType(categoria ? categoria.nome : '');
+    
+  } catch (err) {
+    console.error("Erro ao carregar laudo", err);
+  }
+};
 
 
 
@@ -988,39 +1021,47 @@ CID SUGERIDO: ${laudo.cid_sugerido}
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Função para limpar todos os campos do laudo
+  const limparCamposLaudo = () => {
+    console.log('🧹 Limpando campos do laudo...');
+    
+    previews.forEach(p => URL.revokeObjectURL(p.preview));
+    audioPreviews.forEach(p => URL.revokeObjectURL(p.preview));
+
+    setReportContent('');
+    setReportType('');
+    setSelectedTipoLaudoId('');
+    setPreviews([]);
+    setImageFiles([]);
+    setExames([]);
+    setAudioPreviews([]);
+    setAudioFiles([]);
+    setAudioRecordings([]);
+    setAudios([]);
+    setRecordedAudioBlob(null);
+    setRecordedAudioDuration(0);
+    setLaudoId(null);
+    setCurrentReportId(null);
+    setSelectedLaudoFromList(null);
+    setEditHistory(['']);
+    setHistoryIndex(0);
+    setReportStatus('in-progress');
+    setIsRecording(false);
+    setRecordingTime(0);
+
+    audioRefs.current.forEach(audio => audio.pause());
+    audioRefs.current.clear();
+    setPlayingAudioId(null);
+    
+    console.log('✅ Campos limpos com sucesso');
+    toast.success('Novo laudo iniciado');
+  };
+
   const handleCreateNewReport = () => {
-    const resetReport = () => {
-      previews.forEach(p => URL.revokeObjectURL(p.preview));
-      audioPreviews.forEach(p => URL.revokeObjectURL(p.preview));
+    console.log('🔵 handleCreateNewReport chamado');
 
-      setReportContent('');
-      setReportType('');
-      setSelectedTipoLaudoId('');
-      setPreviews([]);
-      setImageFiles([]);
-      setExames([]);
-      setAudioPreviews([]);
-      setAudioFiles([]);
-      setAudioRecordings([]);
-      setAudios([]);
-      setRecordedAudioBlob(null);
-      setRecordedAudioDuration(0);
-      setLaudoId(null);
-      setCurrentReportId(null);
-      setSelectedPatientLocal(null);
-      setPatientSearch('');
-      setEditHistory(['']);
-      setHistoryIndex(0);
-      setReportStatus('in-progress');
-      setIsRecording(false);
-      setRecordingTime(0);
-
-      audioRefs.current.forEach(audio => audio.pause());
-      audioRefs.current.clear();
-      setPlayingAudioId(null);
-    };
-
-    if (
+    // Verificar se há conteúdo não salvo
+    const temConteudo = !!(
       reportContent ||
       reportType ||
       previews.length > 0 ||
@@ -1028,22 +1069,28 @@ CID SUGERIDO: ${laudo.cid_sugerido}
       audioRecordings.length > 0 ||
       audios.length > 0 ||
       exames.length > 0
-    ) {
-      toast('Criar novo laudo?', {
-        description: 'As alterações não salvas serão perdidas.',
-        action: {
-          label: 'Confirmar',
-          onClick: resetReport,
-        },
-        cancel: {
-          label: 'Cancelar',
-          onClick: () => {},
-        },
-      });
-      return;
-    }
+    );
 
-    resetReport();
+    console.log('Tem conteúdo não salvo?', temConteudo);
+
+    if (temConteudo) {
+      console.log('⚠️ Tem conteúdo, mostrando modal de confirmação...');
+      setShowConfirmNewReport(true);
+    } else {
+      console.log('✅ Sem conteúdo, limpando direto');
+      limparCamposLaudo();
+    }
+  };
+
+  const confirmarNovoLaudo = () => {
+    console.log('✅ Usuário confirmou criar novo laudo');
+    setShowConfirmNewReport(false);
+    limparCamposLaudo();
+  };
+
+  const cancelarNovoLaudo = () => {
+    console.log('❌ Usuário cancelou criar novo laudo');
+    setShowConfirmNewReport(false);
   };
 
   const handleContentChange = (newContent: string) => {
@@ -1208,9 +1255,10 @@ const charCount = safeContent.length;
           <button 
             onClick={handleCreateNewReport}
             className="flex items-center gap-2 px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            title={selectedPatientLocal ? 'Criar novo laudo para este paciente' : 'Criar novo laudo'}
           >
             <Plus size={18} />
-            Novo
+            {selectedPatientLocal ? 'Novo Laudo' : 'Novo'}
           </button>
          <button
   onClick={async () => {
@@ -1240,7 +1288,7 @@ const charCount = safeContent.length;
           {/* Patient & Exam Info Bar */}
           <div className="flex items-center gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
             {/* Patient */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {selectedPatientLocal ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1306,8 +1354,80 @@ const charCount = safeContent.length;
               )}
             </div>
 
+            {/* Laudos List */}
+            {selectedPatientLocal && laudosList.length > 0 && (
+              <div className="flex-1 min-w-0 relative">
+                <button
+                  onClick={() => setShowLaudosDropdown(!showLaudosDropdown)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <span className="truncate">
+                    {selectedLaudoFromList ? (
+                      <span className="flex items-center gap-2">
+                        <span className="text-blue-600">📋</span>
+                        <span>
+                          {laudosList.find(l => l.id === selectedLaudoFromList)?.tipo_laudo_nome || 'Laudo'}
+                          {' - '}
+                          {new Date(laudosList.find(l => l.id === selectedLaudoFromList)?.data_criacao || '').toLocaleDateString('pt-BR')}
+                        </span>
+                      </span>
+                    ) : (
+                      'Selecionar laudo...'
+                    )}
+                  </span>
+                  <span className="ml-2 text-gray-400">▾</span>
+                </button>
+                
+                {showLaudosDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                    {laudosList.map(laudo => (
+                      <button
+                        key={laudo.id}
+                        onClick={() => {
+                          setSelectedLaudoFromList(laudo.id);
+                          carregarLaudo(laudo.id);
+                          setShowLaudosDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                          selectedLaudoFromList === laudo.id ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {laudo.tipo_laudo_nome || 'Laudo'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(laudo.data_criacao).toLocaleDateString('pt-BR')} às {new Date(laudo.data_criacao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <div className="ml-2">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              getStatusConfig(laudo.status).color
+                            }`}>
+                              {getStatusConfig(laudo.status).icon}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        handleCreateNewReport();
+                        setShowLaudosDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 bg-green-50 hover:bg-green-100 transition-colors text-green-700 font-medium text-sm flex items-center gap-2 sticky bottom-0"
+                    >
+                      <Plus size={14} />
+                      Criar novo laudo
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Exam Type */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
   <select
     value={selectedTipoLaudoId}
     onChange={(e) => {
@@ -1770,6 +1890,48 @@ const charCount = safeContent.length;
                 className="max-w-md max-h-100 object-contain mx-auto rounded"
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação para novo laudo */}
+      {showConfirmNewReport && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={cancelarNovoLaudo}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4 mb-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {selectedPatientLocal ? 'Criar novo laudo para este paciente?' : 'Criar novo laudo?'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  As alterações não salvas serão perdidas. Deseja continuar?
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelarNovoLaudo}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarNovoLaudo}
+                className="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-medium"
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
