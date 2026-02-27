@@ -15,7 +15,7 @@ RUN npm ci --only=production
 COPY . .
 
 # Copiar dados do tesseract (português)
-COPY por.traineddata /usr/share/tessdata/ 2>/dev/null || true
+
 
 # Expor porta
 EXPOSE 8000
