@@ -62,5 +62,5 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
 });
 
 app.listen(8000, () => {
-  console.log('🚀 OCR API rodando em http://localhost:8000');
+  console.log('🚀 OCR API rodando em https://iamedbr.com');
 });
