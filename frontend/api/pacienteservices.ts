@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:8100";
+import { API_CONFIG } from '../src/config/api.config';
+
+const API_URL = API_CONFIG.BACKEND_URL;
 
 // CREATE
 export async function criarPaciente(paciente: any) {

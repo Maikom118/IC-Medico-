@@ -1,0 +1,84 @@
+  version: '3.8'
+
+  # ============================================
+  # DOCKER COMPOSE - PRODUÇÃO (www.iamedbr.com)
+  # ============================================
+
+  services:
+    # ================================
+    # TODOS OS SERVIÇOS UNIFICADOS
+    # Backend API + OCR + Transcrição + IA
+    # ================================
+    app:
+      build:
+        context: .
+        dockerfile: Dockerfile.production
+      container_name: ic-medico-app
+      restart: unless-stopped
+      environment:
+        # Database
+        - DB_HOST=ic-medico-postgres
+        - DB_PORT=${DB_PORT:-5432}
+        - DB_NAME=${DB_NAME:-laudos_db}
+        - DB_USER=${DB_USER:-laudos_user}
+        - DB_PASSWORD=${DB_PASSWORD}
+        # Security
+        - SECRET_KEY=${SECRET_KEY}
+        # Node
+        - NODE_ENV=production
+        # Python
+        - PYTHONUNBUFFERED=1
+      volumes:
+        - uploads_data:/app/backend/uploads
+        - logs_data:/var/log/ic-medico
+      depends_on:
+        postgres:
+          condition: service_healthy
+      networks:
+        - ic-medico-network
+      # Expor portas para o nginx
+      expose:
+        - "8100"  # Backend API
+        - "8000"  # OCR
+        - "8200"  # IA
+        - "8300"  # Transcrição
+
+    # ================================
+    # POSTGRESQL DATABASE
+    # ================================
+    postgres:
+      image: postgres:16-alpine
+      container_name: ic-medico-postgres
+      restart: unless-stopped
+      environment:
+        - POSTGRES_DB=${DB_NAME:-laudos_db}
+        - POSTGRES_USER=${DB_USER:-laudos_user}
+        - POSTGRES_PASSWORD=${DB_PASSWORD}
+        - PGDATA=/var/lib/postgresql/data/pgdata
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+        - ./backend/models/Database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      networks:
+        - ic-medico-network
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-laudos_user} -d ${DB_NAME:-laudos_db}"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+      # Não expor porta externa em produção (segurança)
+      # Se precisar acessar externamente, descomente:
+      # ports:
+      #   - "5432:5432"
+
+  
+  networks:
+    ic-medico-network:
+      driver: bridge
+
+  volumes:
+    postgres_data:
+      driver: local
+    uploads_data:
+      driver: local
+    logs_data:
+      driver: local

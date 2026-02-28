@@ -13,13 +13,25 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 
+import os
+
 app = FastAPI()
 
-
 # 🚨 CORS — isso é OBRIGATÓRIO no browser
+allowed_origins = [
+    "http://localhost:3000",  # Desenvolvimento local
+    "http://127.0.0.1:3000",
+    "https://www.iamedbr.com",  # Produção
+    "https://iamedbr.com",
+]
+
+# Em desenvolvimento, permitir qualquer origem
+if os.getenv("NODE_ENV") == "development":
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Vite
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -7,6 +7,7 @@ import {
   atualizarPaciente,
   deletarPaciente
 } from "../../api/pacienteservices";
+import { API_CONFIG } from '../config/api.config';
 
 
 // import { Buffer } from 'buffer'; // Importing Buffer from 'buffer' only if needed
@@ -96,7 +97,7 @@ async function sendRGToOCR() {
   formDataReq.append('imagem', file);
 
   try {
-    const response = await fetch('http://localhost:8000/api/ocr', {
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/ocr`, {
       method: 'POST',
       body: formDataReq
     });
@@ -133,7 +134,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch('http://localhost:8000/api/rg/ultimo');
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/rg/ultimo`);
     if (!response.ok) return;
 
     const result = await response.json();

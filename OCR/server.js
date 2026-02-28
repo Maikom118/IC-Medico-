@@ -4,7 +4,28 @@ const multer = require('multer');
 const { processarOCR } = require('./ocr-limpo');
 
 const app = express();
-app.use(cors());
+
+// Configurar CORS para produção
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://www.iamedbr.com',
+  'https://iamedbr.com',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (por exemplo, mobile apps ou curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 const upload = multer({
   storage: multer.memoryStorage(),

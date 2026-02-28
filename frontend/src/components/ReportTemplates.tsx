@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, FileText, X, Save } from 'lucide-react';
 import type { ReportTemplate } from '../__App';
+import { API_CONFIG } from '../config/api.config';
 
 
 type TipoLaudo = {
@@ -63,7 +64,7 @@ const [usingTemplate, setUsingTemplate] = useState<Template | null>(null);
   /* Buscar laudo base do backend */
 useEffect(() => {
   async function loadTemplates() {
-    const res = await fetch('http://localhost:8100/laudos/base');
+    const res = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/base`);
     const data: ApiReportTemplate[] = await res.json();
 
     const mapped: Template[] = data.map((t) => ({
@@ -103,7 +104,7 @@ const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   /* Buscar categorias do backend */
  useEffect(() => {
-  fetch('http://localhost:8100/laudos/tipos')
+  fetch(`${API_CONFIG.BACKEND_URL}/laudos/tipos`)
     .then(res => res.json())
     .then(data => setCategorias(data))
     .catch(err => console.error('Erro ao buscar categorias', err));
@@ -131,7 +132,7 @@ if (selectedPdfFile) {
 for (const [key, value] of formData.entries()) {
   console.log(key, value);
 }
-    const response = await fetch("http://localhost:8100/laudos/base", {
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/base`, {
       method: "POST",
       body: formData, // ⚠️ SEM headers
     });
@@ -163,7 +164,7 @@ const enviarLaudoPaciente = async (file: File) => {
 for (const pair of formData.entries()) {
   console.log(pair[0], pair[1]);
 }
-  const response = await fetch('http://localhost:8100/laudos/paciente', {
+  const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente`, {
     method: 'POST',
     body: formData, // ⚠️ SEM headers
   });

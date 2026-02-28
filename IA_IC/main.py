@@ -7,12 +7,25 @@ from src.model_arch import GeradorLaudo
 
 load_dotenv()
 
+import os
+
 app = FastAPI()
 
 # 🔓 LIBERA O FRONT
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.iamedbr.com",
+    "https://iamedbr.com",
+]
+
+# Em desenvolvimento, permitir qualquer origem
+if os.getenv("NODE_ENV") == "development":
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # em produção, restringir
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
