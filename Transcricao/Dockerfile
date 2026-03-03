@@ -3,31 +3,22 @@
 # ===========================================
 FROM python:3.11-slim
 
-# Instalar dependências de sistema (incluindo build tools para compilação de pacotes)
+# Instalar dependências de sistema
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    curl \
-    build-essential \
-    python3-dev \
-    python3-setuptools \
+    ffmpeg curl build-essential python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar versões estáveis de pip, setuptools e wheel (pip 24.3 é mais estável para builds de fonte)
-RUN pip install --no-cache-dir --upgrade "pip==24.3" "setuptools==71.0.4" "wheel==0.46.3"
+# Pin setuptools antes de tudo
+RUN pip install --no-cache-dir "setuptools==81.0.0" "wheel==0.46.3"
 
-# Criar diretório da aplicação
+# Upgrade pip isolado
+RUN pip install --no-cache-dir --upgrade "pip==24.3"
+
 WORKDIR /app
-
-# Copiar requirements
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt   # ou adicione --no-build-isolation se precisar
 
-# Instalar dependências Python com pip 24.3 (versão estável, melhor para builds de openai-whisper)
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copiar código da aplicação
 COPY . .
-
-# Criar diretórios necessários
 RUN mkdir -p /app/uploads /app/models /var/log/transcricao
 
 # Expor porta  
