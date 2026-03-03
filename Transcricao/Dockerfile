@@ -12,9 +12,8 @@ RUN apt-get update && apt-get install -y \
     python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
 
-# Atualizar pip, setuptools, e wheel - CRÍTICO: usar --force-reinstall para garantir disponibilidade total
-RUN pip install --no-cache-dir --force-reinstall setuptools wheel && \
-    pip install --no-cache-dir --upgrade pip
+# Instalar versões estáveis de pip, setuptools e wheel (pip 24.3 é mais estável para builds de fonte)
+RUN pip install --no-cache-dir --upgrade "pip==24.3" "setuptools==71.0.4" "wheel==0.46.3"
 
 # Criar diretório da aplicação
 WORKDIR /app
@@ -22,8 +21,8 @@ WORKDIR /app
 # Copiar requirements
 COPY requirements.txt .
 
-# Instalar dependências Python - use --no-build-isolation para evitar erro de pkg_resources
-RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt
+# Instalar dependências Python com pip 24.3 (versão estável, melhor para builds de openai-whisper)
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código da aplicação
 COPY . .
