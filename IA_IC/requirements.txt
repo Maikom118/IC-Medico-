@@ -3,7 +3,7 @@ uvicorn[standard]==0.34.0
 pydantic==2.10.5
 python-dotenv==1.0.1
 langchain-groq==0.2.3
-langchain-core==0.3.28
+langchain-core>=0.3.29,<0.4.0
 pandas==2.2.3
 numpy==1.26.4
 scikit-learn==1.5.2
