@@ -12,8 +12,9 @@ RUN apt-get update && apt-get install -y \
     python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
 
-# Atualizar pip, setuptools, e wheel - crítico para compilação de pacotes
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# Atualizar pip, setuptools, e wheel - CRÍTICO: usar --force-reinstall para garantir disponibilidade total
+RUN pip install --no-cache-dir --force-reinstall setuptools wheel && \
+    pip install --no-cache-dir --upgrade pip
 
 # Criar diretório da aplicação
 WORKDIR /app
@@ -21,8 +22,8 @@ WORKDIR /app
 # Copiar requirements
 COPY requirements.txt .
 
-# Instalar dependências Python - setuptools deve estar disponível antes
-RUN pip install --no-cache-dir -r requirements.txt
+# Instalar dependências Python - use --no-build-isolation para evitar erro de pkg_resources
+RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
 # Copiar código da aplicação
 COPY . .
