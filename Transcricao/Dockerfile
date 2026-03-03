@@ -3,11 +3,16 @@
 # ===========================================
 FROM python:3.11-slim
 
-# Instalar dependências do sistema
+# Instalar dependências de sistema (incluindo build tools para compilação de pacotes)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Atualizar pip e setuptools
+RUN pip install --upgrade pip setuptools wheel
 
 # Criar diretório da aplicação
 WORKDIR /app
