@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { API_CONFIG } from "../config/api.config";
 
 type Props = {
   onTranscription: (text: string) => void;
@@ -49,7 +50,7 @@ export function AudioRecorder({ onTranscription }: Props) {
     formData.append("file", audioBlob, "audio.webm");
 
     try {
-      const response = await fetch("/transcrever", {
+      const response = await fetch(`${API_CONFIG.TRANSCRICAO_URL}/transcrever`, {
         method: "POST",
         body: formData,
       });

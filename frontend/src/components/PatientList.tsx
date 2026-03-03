@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, Eye, Edit, Trash2 } from 'lucide-react';
 import type { Patient } from '../__App';
 import { calcularIdade } from '../utils/dateUtils';
+import { API_CONFIG } from '../config/api.config';
 
 type PatientListProps = {
   onPatientSelect: (patient: Patient) => void;
@@ -12,7 +13,7 @@ export function PatientList({ onPatientSelect }: PatientListProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:8100/pacientes')
+    fetch(`${API_CONFIG.BACKEND_URL}/pacientes`)
       .then(res => res.json())
       .then(data => {
         const mapped: Patient[] = data.map((p: any) => ({
