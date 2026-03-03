@@ -1,0 +1,154 @@
+version: '3.9'
+
+# ============================================
+# DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
+# Backend, Frontend e Database rodando separadamente
+# ============================================
+
+services:
+  # ================================
+  # OCR SERVICE (Node.js + Tesseract)
+  # ================================
+  ocr:
+    build:
+      context: ./OCR
+      dockerfile: Dockerfile
+      cache_from:
+        - ic-medico-ocr:latest
+    image: ic-medico-ocr:latest
+    container_name: ic-medico-ocr
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - LOG_LEVEL=info
+    volumes:
+      - ocr_uploads:/app/uploads
+      - ocr_temp:/tmp/ocr
+      - ocr_logs:/var/log/ocr
+    ports:
+      - "8000:8000"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+        reservations:
+          cpus: '1'
+          memory: 1.5G
+
+  # ================================
+  # TRANSCRIÇÃO SERVICE (Python FastAPI)
+  # ================================
+  transcricao:
+    build:
+      context: ./Transcricao
+      dockerfile: Dockerfile
+      cache_from:
+        - ic-medico-transcricao:latest
+    image: ic-medico-transcricao:latest
+    container_name: ic-medico-transcricao
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8300
+      - WORKERS=2
+      - LOG_LEVEL=info
+    volumes:
+      - transcricao_uploads:/app/uploads
+      - transcricao_models:/app/models
+      - transcricao_logs:/var/log/transcricao
+    ports:
+      - "8300:8300"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1.5'
+          memory: 2.5G
+
+  # ================================
+  # IA SERVICE (Python FastAPI/scikit-learn)
+  # ================================
+  ia:
+    build:
+      context: ./IA_IC
+      dockerfile: Dockerfile
+      cache_from:
+        - ic-medico-ia:latest
+    image: ic-medico-ia:latest
+    container_name: ic-medico-ia
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8200
+      - WORKERS=2
+      - LOG_LEVEL=info
+    volumes:
+      - ia_models:/app/models
+      - ia_data:/app/data
+      - ia_logs:/var/log/ia
+    ports:
+      - "8200:8200"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 3G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+networks:
+  ic-medico-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  ocr_uploads:
+    driver: local
+  ocr_temp:
+    driver: local
+  ocr_logs:
+    driver: local
+  transcricao_uploads:
+    driver: local
+  transcricao_models:
+    driver: local
+  transcricao_logs:
+    driver: local
+  ia_models:
+    driver: local
+  ia_data:
+    driver: local
+  ia_logs:
+    driver: local
