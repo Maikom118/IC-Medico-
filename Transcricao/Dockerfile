@@ -3,29 +3,25 @@
 # ===========================================
 FROM python:3.11-slim
 
-# Evita problemas de buffer e bytecode
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Instalar dependências de sistema
+# Instalar dependências de sistema (incluindo build tools para compilação de pacotes)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     build-essential \
     python3-dev \
+    python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
 
-# Atualizar pip e garantir setuptools compatível com pkg_resources
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir "setuptools<72" wheel
+# Instalar versões estáveis de pip, setuptools e wheel (pip 24.3 é mais estável para builds de fonte)
+RUN pip install --no-cache-dir --upgrade "pip==24.3" "setuptools==71.0.4" "wheel==0.46.3"
 
 # Criar diretório da aplicação
 WORKDIR /app
 
-# Copiar requirements primeiro (melhora cache)
+# Copiar requirements
 COPY requirements.txt .
 
-# Instalar dependências Python
+# Instalar dependências Python com pip 24.3 (versão estável, melhor para builds de openai-whisper)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código da aplicação
@@ -42,4 +38,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
   CMD curl -f http://localhost:8300/health || exit 1
 
 # Comando para iniciar o servidor
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8300"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8300", "--workers", "2"]
