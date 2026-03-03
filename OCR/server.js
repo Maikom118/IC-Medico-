@@ -34,6 +34,15 @@ const upload = multer({
   }
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    service: 'ocr',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.post('/api/ocr', upload.single('image'), async (req, res) => {
   
   // Logs iniciais para ver o que o Multer e o Express receberam

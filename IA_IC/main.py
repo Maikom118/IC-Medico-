@@ -36,6 +36,18 @@ gerador = GeradorLaudo()
 class SintomasRequest(BaseModel):
     sintomas: str
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "ia",
+        "timestamp": os.environ.get("TIMESTAMP", "N/A")
+    }
+
 @app.post("/gerar-laudo")
 def gerar_laudo(data: SintomasRequest):
     return gerador.gerar(data.sintomas)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8200)

@@ -48,6 +48,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- HEALTH CHECK ---
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "transcricao",
+        "timestamp": os.environ.get("TIMESTAMP", "N/A")
+    }
+
 # --- CARREGAMENTO DO MODELO ---
 print("[STATUS] Carregando modelo Whisper (aguarde)...")
 try:
