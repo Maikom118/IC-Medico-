@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Pin pip to 24.3 (26.0.1 breaks setuptools isolation) and setuptools compatibility
-RUN pip install --no-cache-dir pip==24.3 \
+# Atualizar pip e garantir setuptools compatível com pkg_resources
+RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir "setuptools<72" wheel
 
 # Criar diretório da aplicação
