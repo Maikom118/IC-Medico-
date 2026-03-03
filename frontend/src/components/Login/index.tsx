@@ -12,6 +12,22 @@ import {
   Sparkles,
 } from "lucide-react";
 import "./index.css";
+import { setAuthUser } from "../../utils/auth";
+
+const USERS = {
+  medico: {
+    email: "medico@email.com",
+    password: "12345",
+    name: "Dr. João Silva",
+    role: "medico" as const,
+  },
+  secretaria: {
+    email: "secretaria@email.com",
+    password: "12345",
+    name: "Secretaria",
+    role: "secretaria" as const,
+  },
+};
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,23 +45,35 @@ const Login = () => {
       return;
     }
 
-    let adminTest = {
-      admin: "admin@email.com",
-      password: "12345"
-    }
+    const user = Object.values(USERS).find(
+      (candidate) =>
+        candidate.email.toLowerCase() === email.toLowerCase() &&
+        candidate.password === password
+    );
 
-    console.log("Login funcionando...");
-
-    if (email === adminTest.admin && password === adminTest.password) {
-      navigate("/dashboard");
-      console.log({
-        email,
-        password,
-        rememberMe,
-      });
-    } else {
+    if (!user) {
       alert("Credenciais inválidas");
+      return;
     }
+
+    setAuthUser({
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
+
+    if (user.role === "secretaria") {
+      navigate("/registration");
+      return;
+    }
+
+    navigate("/dashboard");
+
+    console.log({
+      email,
+      rememberMe,
+      role: user.role,
+    });
   };
 
   return (

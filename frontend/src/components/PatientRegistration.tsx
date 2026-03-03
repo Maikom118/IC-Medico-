@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { CameraRG } from "./CameraRG";
 import {
+  listarPacientes,
   criarPaciente,
   atualizarPaciente,
   deletarPaciente
@@ -273,6 +274,18 @@ const fromApiPaciente = (api: any): Patient => ({
   rgPhoto: api.foto_rg_base64,
   registrationDate: api.data_cadastro ?? new Date().toISOString(),
 });
+
+  useEffect(() => {
+    listarPacientes()
+      .then((data) => {
+        const mapped = (data ?? []).map(fromApiPaciente);
+        setPatients(mapped);
+      })
+      .catch((error) => {
+        console.error('Erro ao buscar pacientes', error);
+        toast.error('Erro ao carregar pacientes');
+      });
+  }, []);
 
 
 

@@ -2,6 +2,18 @@ import { API_CONFIG } from '../src/config/api.config';
 
 const API_URL = API_CONFIG.BACKEND_URL;
 
+// READ
+export async function listarPacientes() {
+  const response = await fetch(`${API_URL}/pacientes`);
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Erro ao buscar pacientes");
+  }
+
+  return response.json();
+}
+
 // CREATE
 export async function criarPaciente(paciente: any) {
   const response = await fetch(`${API_URL}/pacientes`, {

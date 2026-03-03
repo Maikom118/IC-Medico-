@@ -9,6 +9,7 @@ import {
   FileStack,
   UserPlus,
 } from "lucide-react";
+import { clearAuthUser, getAuthUser } from "../../utils/auth";
 
 /*
   DashboardLayout
@@ -25,9 +26,16 @@ import {
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
+  const user = getAuthUser();
+  const isSecretaria = user?.role === "secretaria";
 
   // Controla se a sidebar está aberta ou fechada
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const handleLogout = () => {
+    clearAuthUser();
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -49,48 +57,57 @@ export default function DashboardLayout() {
           <nav className="space-y-2">
 
             {/* Cada botão navega para uma rota específica */}
-            <NavButton
-              icon={<Menu size={20} />}
-              text="Dashboard"
-              onClick={() => navigate("/dashboard")}
-            />
+            {isSecretaria && (
+              <NavButton
+                icon={<UserPlus size={20} />}
+                text="Cadastro"
+                onClick={() => navigate("/registration")}
+              />
+            )}
 
-            <NavButton
-              icon={<UserPlus size={20} />}
-              text="Cadastro"
-              onClick={() => navigate("/registration")}
-            />
+            {!isSecretaria && (
+              <>
+                <NavButton
+                  icon={<Menu size={20} />}
+                  text="Dashboard"
+                  onClick={() => navigate("/dashboard")}
+                />
 
-            <NavButton
-              icon={<Users size={20} />}
-              text="Pacientes"
-              onClick={() => navigate("/patients")}
-            />
+                <NavButton
+                  icon={<Users size={20} />}
+                  text="Pacientes"
+                  onClick={() => navigate("/patients")}
+                />
 
-            <NavButton
-              icon={<FileText size={20} />}
-              text="Laudos"
-              onClick={() => navigate("/reports")}
-            />
+                <NavButton
+                  icon={<FileText size={20} />}
+                  text="Laudos"
+                  onClick={() => navigate("/reports")}
+                />
 
-            <NavButton
-              icon={<FileStack size={20} />}
-              text="Modelos"
-              onClick={() => navigate("/templates")}
-            />
+                <NavButton
+                  icon={<FileStack size={20} />}
+                  text="Modelos"
+                  onClick={() => navigate("/templates")}
+                />
 
-            <NavButton
-              icon={<MessageSquare size={20} />}
-              text="IA Assistente"
-              onClick={() => navigate("/chat")}
-            />
+                <NavButton
+                  icon={<MessageSquare size={20} />}
+                  text="IA Assistente"
+                  onClick={() => navigate("/chat")}
+                />
+              </>
+            )}
 
           </nav>
         </div>
 
         {/* Botão fixado na parte inferior da sidebar */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500"
+          >
             <LogOut size={20} />
             <span>Sair</span>
           </button>
@@ -116,10 +133,10 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm font-medium">
-                Dr. João Silva
+                {user?.name ?? "Usuário"}
               </p>
               <p className="text-xs text-gray-500">
-                Radiologista
+                {isSecretaria ? "Secretária" : "Médico"}
               </p>
             </div>
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
