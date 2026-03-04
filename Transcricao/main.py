@@ -1,6 +1,5 @@
 import os
 import shutil
-import whisper
 
 from faster_whisper import WhisperModel
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, requests
@@ -62,7 +61,7 @@ async def health_check():
 # --- CARREGAMENTO DO MODELO ---
 print("[STATUS] Carregando modelo Whisper (aguarde)...")
 try:
-    model = whisper.load_model("small")
+    model = WhisperModel("small", device="cpu", compute_type="int8")
     print("[STATUS] Modelo carregado!")
 except Exception as e:
     print(f"[ERRO] Falha ao carregar modelo: {e}")
@@ -97,13 +96,12 @@ async def transcrever_e_gerar_laudo(
         )
 
         # 1️⃣ Transcrição
-        result = model.transcribe(
+        segments, info = model.transcribe(
             temp_filename,
-            fp16=False,
             language="pt"
         )
-
-        texto = result["text"].strip()
+        
+        texto = " ".join([segment.text for segment in segments]).strip()
 
         if not texto:
             raise Exception("Transcrição vazia")
