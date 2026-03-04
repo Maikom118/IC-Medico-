@@ -5,10 +5,48 @@ const sharp = require('sharp');
 const { createWorker } = require('tesseract.js');
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
 
-app.use(cors());
+// Configurar multer com limite de tamanho
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 500 * 1024 * 1024 // 500MB
+  }
+});
+
+// Configurar CORS para produção
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://www.iamedbr.com',
+  'https://iamedbr.com',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (por exemplo, mobile apps ou curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
+
+/* ======================================================
+   HEALTH CHECK
+====================================================== */
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    service: 'ocr',
+    timestamp: new Date().toISOString()
+  });
+});
 
 /* ======================================================
    ARMAZENAMENTO DO ÚLTIMO RG
@@ -116,22 +154,53 @@ async function processarOCR(imagemBuffer) {
 /* ======================================================
    POST /api/ocr
 ====================================================== */
-app.post('/api/ocr', upload.any(), async (req, res) => {
+app.post('/api/ocr', upload.single('image'), async (req, res) => {
+  
+  // Logs iniciais para ver o que o Multer e o Express receberam
+  console.log('🔍 [OCR] Nova requisição recebida');
+  console.log('   - Content-Type:', req.headers['content-type']);
+  console.log('   - Content-Length:', req.headers['content-length']);
+  console.log('   - Tem body parseado?', !!req.body);
+  console.log('   - Tem arquivo (req.file)?', !!req.file);
+  
+  if (req.file) {
+    console.log('   Arquivo recebido com sucesso:');
+    console.log('     - Nome original:', req.file.originalname);
+    console.log('     - Tamanho (bytes):', req.file.size);
+    console.log('     - MIME type:', req.file.mimetype);
+    console.log('     - Buffer length:', req.file.buffer?.length || 'sem buffer');
+  } else {
+    console.log('   ❌ Nenhum arquivo detectado pelo multer');
+    console.log('   Possíveis causas:');
+    console.log('     - Campo enviado com nome diferente de "image"');
+    console.log('     - Nenhum arquivo foi anexado na requisição');
+    console.log('     - Requisição não é multipart/form-data');
+  }
+
+  // Log dos campos normais (se houver outros além do arquivo)
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('   Campos normais recebidos (req.body):', req.body);
+  }
+
+  if (!req.file) {
+    return res.status(400).json({
+      status: 'erro',
+      mensagem: 'Imagem não enviada'
+    });
+  }
+
   try {
-    if (!req.files || !req.files.length) {
-      return res.status(400).json({ erro: 'Imagem não enviada' });
-    }
-
-    const file = req.files[0]; // pega a primeira imagem
-
-    const resultado = await processarOCR(file.buffer);
+    const resultado = await processarOCR(req.file.buffer);
 
     ultimoRG = resultado;
     res.json(resultado);
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ erro: 'Erro ao processar OCR' });
+    res.status(500).json({ 
+      status: 'erro',
+      mensagem: 'Erro ao processar OCR' 
+    });
   }
 });
 
