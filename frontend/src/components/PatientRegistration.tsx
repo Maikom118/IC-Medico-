@@ -95,7 +95,7 @@ async function sendRGToOCR() {
   console.log('📤 Enviando para OCR:', file, file instanceof File);
 
   const formDataReq = new FormData();
-  formDataReq.append('imagem', file);
+  formDataReq.append('image', file);
 
   try {
     const response = await fetch(`${API_CONFIG.OCR_URL}/api/ocr`, {
