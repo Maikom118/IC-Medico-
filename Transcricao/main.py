@@ -1,6 +1,8 @@
 import os
 import shutil
 import whisper
+
+from faster_whisper import WhisperModel
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, requests
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware

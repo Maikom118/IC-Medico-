@@ -103,6 +103,7 @@ services:
       - PORT=8200
       - WORKERS=2
       - LOG_LEVEL=info
+      - GROQ_API_KEY=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
     volumes:
       - ia_models:/app/models
       - ia_data:/app/data
