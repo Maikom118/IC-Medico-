@@ -1,6 +1,6 @@
 import os
 import shutil
-import whisper
+
 
 from faster_whisper import WhisperModel
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, requests
