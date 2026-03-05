@@ -2,8 +2,8 @@ version: '3.9'
 
 # ============================================
 # DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
-# SERVIÇOS: OCR + TRANSCRIÇÃO + IA + FRONTEND
-# Backend rodando separadamente (porta 8100)
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
+# Backend, Frontend e Database rodando separadamente
 # ============================================
 
 services:
@@ -87,10 +87,10 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api/transcricao`)"
+        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
-        - "traefik.http.routers.iamed-transcricao.priority=220"
+        - "traefik.http.routers.iamed-transcricao.priority=190"
         - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
       resources:
         limits:
@@ -135,10 +135,10 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api/ia`)"
+        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
         - "traefik.http.routers.iamed-ia.entrypoints=websecure"
         - "traefik.http.routers.iamed-ia.tls=true"
-        - "traefik.http.routers.iamed-ia.priority=200"
+        - "traefik.http.routers.iamed-ia.priority=180"
         - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
       resources:
         limits:
@@ -147,27 +147,6 @@ services:
         reservations:
           cpus: '1'
           memory: 2G
-
-  # ================================
-  # FRONTEND (React + Vite via Nginx)
-  # ================================
-  frontend:
-    image: nginx:alpine
-    container_name: ic-medico-frontend
-    volumes:
-      - ./build:/usr/share/nginx/html:ro
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    restart: unless-stopped
-    networks:
-      - ic-medico-network
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.iamed-frontend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && !PathPrefix(`/api/`) && !Path(`/health`)"
-        - "traefik.http.routers.iamed-frontend.entrypoints=websecure"
-        - "traefik.http.routers.iamed-frontend.tls=true"
-        - "traefik.http.routers.iamed-frontend.priority=10"
-        - "traefik.http.services.iamed-frontend.loadbalancer.server.port=80"
 
 networks:
   ic-medico-network:

@@ -8,20 +8,16 @@ const isProduction = import.meta.env.PROD;
 // URLs de produção (www.iamedbr.com)
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
-  BACKEND_URL: '/api',  // Via Traefik proxy
-  BACKEND_BASE: '/api',
-  OCR_BASE: '/api',  // OCR tem rotas: /api/ocr e /api/rg/ultimo
-  IA_BASE: '/api/ia',  // Via Traefik proxy
-  TRANSCRICAO_BASE: '/api/transcricao',  // Via Traefik proxy
+  BACKEND_URL: 'https://www.iamedbr.com',
+  OCR_BASE: '',  // Usa caminho relativo para evitar mixed content
+  TRANSCRICAO_BASE: '',  // Usa caminho relativo para evitar mixed content
 };
 
 // URLs de desenvolvimento (localhost)
 const DEVELOPMENT_CONFIG = {
   BASE_URL: 'http://localhost:5173', // Frontend
   BACKEND_URL: 'http://localhost:8100',
-  BACKEND_BASE: 'http://localhost:8100',
   OCR_BASE: 'http://localhost:8000',
-  IA_BASE: 'http://localhost:8200',
   TRANSCRICAO_BASE: 'http://localhost:8300',
 };
 
@@ -43,7 +39,7 @@ export const API_CONFIG = {
   // Service endpoints (construídos dinamicamente)
   getBackendUrl: (path: string) => `${config.BACKEND_URL}${path}`,
   getOcrUrl: (path: string) => `${(config as any).OCR_BASE}${path}`,
-  getIaUrl: (path: string) => `${(config as any).IA_BASE}${path}`,
+  getIaUrl: (path: string) => `${config.BASE_URL}/ia${path}`,
   getTranscricaoUrl: (path: string) => `${(config as any).TRANSCRICAO_BASE}${path}`,
 };
 
