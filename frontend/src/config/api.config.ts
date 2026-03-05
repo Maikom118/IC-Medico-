@@ -9,7 +9,7 @@ const isProduction = import.meta.env.PROD;
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
   BACKEND_URL: 'https://www.iamedbr.com',
-  OCR_BASE: 'https://www.iamedbr.com:8000',  // Direct port access
+  OCR_BASE: 'http://www.iamedbr.com:8000',  // HTTP only - no SSL on port 8000
 };
 
 // URLs de desenvolvimento (localhost)
