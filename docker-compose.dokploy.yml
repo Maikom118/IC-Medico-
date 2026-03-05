@@ -109,7 +109,15 @@ services:
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
         - "traefik.http.routers.iamed-transcricao.priority=220"
+        - "traefik.http.routers.iamed-transcricao.middlewares=transcricao-strip"
+        - "traefik.http.middlewares.transcricao-strip.stripprefix.prefixes=/api/transcricao"
+        - "traefik.http.middlewares.transcricao-strip.stripprefix.forceSlash=false"
         - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
+        - "traefik.http.routers.iamed-transcricao-alt.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && Path(`/transcrever-e-gerar-laudo`)"
+        - "traefik.http.routers.iamed-transcricao-alt.entrypoints=websecure"
+        - "traefik.http.routers.iamed-transcricao-alt.tls=true"
+        - "traefik.http.routers.iamed-transcricao-alt.priority=230"
+        - "traefik.http.services.iamed-transcricao-alt.loadbalancer.server.port=8300"
       resources:
         limits:
           cpus: '2'
