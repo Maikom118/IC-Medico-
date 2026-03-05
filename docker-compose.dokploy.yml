@@ -2,8 +2,8 @@ version: '3.9'
 
 # ============================================
 # DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
-# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
-# Backend, Frontend e Database rodando separadamente
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA + FRONTEND
+# Backend rodando separadamente (porta 8100)
 # ============================================
 
 services:
