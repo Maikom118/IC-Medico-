@@ -22,6 +22,12 @@ services:
     restart: unless-stopped
     networks:
       - ic-medico-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`www.iamedbr.com`,`iamedbr.com`) && PathPrefix(`/api`) && !PathPrefix(`/api/ocr`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.services.backend.loadbalancer.server.port=8100"
 
   # ================================
   # OCR SERVICE (Node.js)
@@ -36,6 +42,12 @@ services:
     restart: unless-stopped
     networks:
       - ic-medico-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ocr.rule=Host(`www.iamedbr.com`,`iamedbr.com`) && PathPrefix(`/api/ocr`)"
+      - "traefik.http.routers.ocr.entrypoints=websecure"
+      - "traefik.http.routers.ocr.tls=true"
+      - "traefik.http.services.ocr.loadbalancer.server.port=8000"
 
   # ================================
   # TRANSCRIÇÃO SERVICE (Python)
@@ -54,6 +66,12 @@ services:
       resources:
         limits:
           memory: 4G
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transcricao.rule=Host(`www.iamedbr.com`,`iamedbr.com`) && PathPrefix(`/transcricao`)"
+      - "traefik.http.routers.transcricao.entrypoints=websecure"
+      - "traefik.http.routers.transcricao.tls=true"
+      - "traefik.http.services.transcricao.loadbalancer.server.port=8300"
 
   # ================================
   # FRONTEND (React + Vite)

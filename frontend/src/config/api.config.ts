@@ -9,13 +9,16 @@ const isProduction = import.meta.env.PROD;
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
   BACKEND_URL: 'https://www.iamedbr.com',
-  OCR_BASE: 'http://www.iamedbr.com:8000',  // HTTP only - no SSL on port 8000
+  OCR_BASE: '',  // Usa caminho relativo para evitar mixed content
+  TRANSCRICAO_BASE: '',  // Usa caminho relativo para evitar mixed content
 };
 
 // URLs de desenvolvimento (localhost)
 const DEVELOPMENT_CONFIG = {
   BASE_URL: 'http://localhost:5173', // Frontend
   BACKEND_URL: 'http://localhost:8100',
+  OCR_BASE: 'http://localhost:8000',
+  TRANSCRICAO_BASE: 'http://localhost:8300',
 };
 
 // Seleciona a configuração baseada no ambiente
@@ -35,11 +38,9 @@ export const API_CONFIG = {
   
   // Service endpoints (construídos dinamicamente)
   getBackendUrl: (path: string) => `${config.BACKEND_URL}${path}`,
-  getOcrUrl: (path: string) => isProduction && (config as any).OCR_BASE 
-    ? `${(config as any).OCR_BASE}${path}` 
-    : `http://localhost:8000${path}`,
+  getOcrUrl: (path: string) => `${(config as any).OCR_BASE}${path}`,
   getIaUrl: (path: string) => `${config.BASE_URL}/ia${path}`,
-  getTranscricaoUrl: (path: string) => `${config.BASE_URL}/transcricao${path}`,
+  getTranscricaoUrl: (path: string) => `${(config as any).TRANSCRICAO_BASE}${path}`,
 };
 
 // Log da configuração em desenvolvimento
