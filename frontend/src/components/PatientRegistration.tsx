@@ -98,7 +98,7 @@ async function sendRGToOCR() {
   formDataReq.append('image', file);
 
   try {
-    const response = await fetch(API_CONFIG.getOcrUrl('/api/ocr'), {
+    const response = await fetch(API_CONFIG.getOcrUrl('/ocr'), {
       method: 'POST',
       body: formDataReq
     });
@@ -162,7 +162,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch(API_CONFIG.getOcrUrl('/api/rg/ultimo'));
+    const response = await fetch(API_CONFIG.getOcrUrl('/rg/ultimo'));
     if (!response.ok) return;
 
     const result = await response.json();
