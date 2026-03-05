@@ -87,7 +87,7 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && Path(`/transcrever-e-gerar-laudo`)"
+        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && Path(`/transcrever-e-gerar-laudo`) && Method(`POST`)"
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
         - "traefik.http.routers.iamed-transcricao.priority=300"
@@ -147,6 +147,27 @@ services:
         reservations:
           cpus: '1'
           memory: 2G
+
+  # ================================
+  # FRONTEND (React + Vite via Nginx)
+  # ================================
+  frontend:
+    image: nginx:alpine
+    container_name: ic-medico-frontend
+    volumes:
+      - ./build:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-frontend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && !Path(`/transcrever-e-gerar-laudo`) && !PathPrefix(`/api/ocr`) && !PathPrefix(`/api/rg`)"
+        - "traefik.http.routers.iamed-frontend.entrypoints=websecure"
+        - "traefik.http.routers.iamed-frontend.tls=true"
+        - "traefik.http.routers.iamed-frontend.priority=10"
+        - "traefik.http.services.iamed-frontend.loadbalancer.server.port=80"
 
 networks:
   ic-medico-network:
