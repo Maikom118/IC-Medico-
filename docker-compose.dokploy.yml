@@ -38,6 +38,13 @@ services:
       retries: 3
       start_period: 40s
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-ocr.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
+        - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
+        - "traefik.http.routers.iamed-ocr.tls=true"
+        - "traefik.http.routers.iamed-ocr.priority=200"
+        - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
       resources:
         limits:
           cpus: '2'
@@ -78,6 +85,13 @@ services:
       retries: 3
       start_period: 45s
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+        - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
+        - "traefik.http.routers.iamed-transcricao.tls=true"
+        - "traefik.http.routers.iamed-transcricao.priority=190"
+        - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
       resources:
         limits:
           cpus: '2'
@@ -119,6 +133,13 @@ services:
       retries: 3
       start_period: 45s
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
+        - "traefik.http.routers.iamed-ia.entrypoints=websecure"
+        - "traefik.http.routers.iamed-ia.tls=true"
+        - "traefik.http.routers.iamed-ia.priority=180"
+        - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
       resources:
         limits:
           cpus: '1.5'
