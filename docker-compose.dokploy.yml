@@ -87,12 +87,10 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/transcricao`)"
+        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && Path(`/transcrever-e-gerar-laudo`)"
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
-        - "traefik.http.routers.iamed-transcricao.priority=220"
-        - "traefik.http.routers.iamed-transcricao.middlewares=iamed-transcricao-strip"
-        - "traefik.http.middlewares.iamed-transcricao-strip.stripprefix.prefixes=/transcricao"
+        - "traefik.http.routers.iamed-transcricao.priority=300"
         - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
       resources:
         limits:
