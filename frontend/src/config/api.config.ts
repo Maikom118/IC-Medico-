@@ -8,11 +8,11 @@ const isProduction = import.meta.env.PROD;
 // URLs de produção (www.iamedbr.com)
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
-  BACKEND_URL: '/api',  // Via Traefik proxy /api/backend → 8100
+  BACKEND_URL: '/api',  // Via Traefik proxy
   BACKEND_BASE: '/api',
-  OCR_BASE: '/api/ocr',  // Via Traefik proxy
-  IA_BASE: '/api/ia',  // Via Traefik proxy
-  TRANSCRICAO_BASE: '/api/transcricao',  // Via Traefik proxy (alinhado com OCR)
+  OCR_BASE: '',  // Paths completos nas chamadas
+  IA_BASE: '',  // Paths completos nas chamadas
+  TRANSCRICAO_BASE: '',  // Paths completos nas chamadas
 };
 
 // URLs de desenvolvimento (localhost)
@@ -41,7 +41,7 @@ export const API_CONFIG = {
   // Service endpoints (construídos dinamicamente)
   getBackendUrl: (path: string) => `${config.BACKEND_URL}${path}`,
   getOcrUrl: (path: string) => `${(config as any).OCR_BASE}${path}`,
-  getIaUrl: (path: string) => `${config.BASE_URL}/ia${path}`,
+  getIaUrl: (path: string) => `${(config as any).IA_BASE}${path}`,
   getTranscricaoUrl: (path: string) => `${(config as any).TRANSCRICAO_BASE}${path}`,
 };
 

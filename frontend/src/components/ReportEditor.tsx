@@ -859,7 +859,7 @@ mediaRecorder.onstop = () => {
       );
 
       const response = await fetch(
-        API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
+        API_CONFIG.getTranscricaoUrl('/api/transcricao/transcrever-e-gerar-laudo'),
         {
           method: 'POST',
           body: formData,
@@ -956,7 +956,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
     );
 
     const response = await fetch(
-      API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
+      API_CONFIG.getTranscricaoUrl('/api/transcricao/transcrever-e-gerar-laudo'),
       {
         method: "POST",
         body: formData,
