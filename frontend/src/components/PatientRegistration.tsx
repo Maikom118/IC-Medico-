@@ -98,14 +98,40 @@ async function sendRGToOCR() {
   formDataReq.append('image', file);
 
   try {
-    const response = await fetch(`${API_CONFIG.OCR_URL}/api/ocr`, {
+    const response = await fetch(API_CONFIG.getOcrUrl('/ocr'), {
       method: 'POST',
       body: formDataReq
     });
 
+    // Check if response is OK first
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type');
+      let errorMessage = `HTTP ${response.status}`;
+      
+      // Try to parse error response based on content type
+      if (contentType?.includes('application/json')) {
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.erro || errorData.message || errorMessage;
+        } catch (e) {
+          console.warn('Could not parse error JSON:', e);
+        }
+      } else {
+        // For non-JSON responses (HTML error pages)
+        try {
+          const text = await response.text();
+          errorMessage = text.slice(0, 100) || errorMessage;
+        } catch (e) {
+          console.warn('Could not read error response:', e);
+        }
+      }
+      
+      throw new Error(`OCR Service error: ${errorMessage}`);
+    }
+
     const result = await response.json();
 
-    if (!response.ok || result.status !== 'sucesso') {
+    if (result.status !== 'sucesso') {
       throw new Error(result.erro || 'Erro OCR');
     }
 
@@ -123,7 +149,8 @@ async function sendRGToOCR() {
 
   } catch (err) {
     console.error('❌ OCR erro:', err);
-    toast.error('Erro ao processar OCR');
+    const errorMsg = err instanceof Error ? err.message : 'Erro ao processar OCR';
+    toast.error(errorMsg);
   }
 }
 
@@ -135,7 +162,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch(`${API_CONFIG.OCR_URL}/api/rg/ultimo`);
+    const response = await fetch(API_CONFIG.getOcrUrl('/rg/ultimo'));
     if (!response.ok) return;
 
     const result = await response.json();
@@ -663,18 +690,12 @@ const handleSave = async () => {
   onClick={sendRGToOCR}
   disabled={!formData.rgPhoto}
   className={`
-   flex items-center justify-center gap-2
-    px-5 py-3
-    rounded-xl
-    shadow-lg
-    transition-all
-    ${formData.rgPhoto
-      ? 'bg-green-600 hover:bg-green-700 text-white'
-      : 'bg-gray-400 cursor-not-allowed text-gray-700'}
-
-    ${formData.rgPhoto
-      ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-700'
-      : 'bg-gray-300 text-gray-600 cursor-not-allowed border border-gray-300'}
+    flex items-center justify-center gap-2 px-5 py-3 rounded-xl shadow-lg transition-all border
+    ${
+      formData.rgPhoto
+        ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-700'
+        : 'bg-gray-300 text-gray-600 cursor-not-allowed border-gray-300'
+    }
   `}
 >
   <Upload size={20} />
