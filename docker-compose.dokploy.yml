@@ -2,11 +2,29 @@ version: '3.9'
 
 # ============================================
 # DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
-# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
-# Backend, Frontend e Database rodando separadamente
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA + FRONTEND
+# BACKEND rodando em Dockerfile separado (port 8100)
 # ============================================
 
 services:
+  # ================================
+  # BACKEND API ROUTER (referencia external port 8100)
+  # ================================
+  backend-router:
+    image: alpine
+    container_name: ic-medico-backend-router
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-backend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api`) && !PathPrefix(`/api/ocr`) && !PathPrefix(`/api/ia`) && !PathPrefix(`/api/transcricao`)"
+        - "traefik.http.routers.iamed-backend.entrypoints=websecure"
+        - "traefik.http.routers.iamed-backend.tls=true"
+        - "traefik.http.routers.iamed-backend.priority=100"
+        - "traefik.http.services.iamed-backend.loadbalancer.server.url=http://host.docker.internal:8100"
+
   # ================================
   # OCR SERVICE (Node.js + Tesseract)
   # ================================
@@ -135,10 +153,10 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
+        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api/ia`)"
         - "traefik.http.routers.iamed-ia.entrypoints=websecure"
         - "traefik.http.routers.iamed-ia.tls=true"
-        - "traefik.http.routers.iamed-ia.priority=180"
+        - "traefik.http.routers.iamed-ia.priority=200"
         - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
       resources:
         limits:

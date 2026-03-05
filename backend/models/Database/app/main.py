@@ -37,10 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pacientes_router)
-app.include_router(laudos_router)
-app.include_router(audios_router)
-app.include_router(exames_router)
+app.include_router(pacientes_router, prefix="/api")
+app.include_router(laudos_router, prefix="/api")
+app.include_router(audios_router, prefix="/api")
+app.include_router(exames_router, prefix="/api")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 

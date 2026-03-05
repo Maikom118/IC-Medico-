@@ -37,6 +37,7 @@ class SintomasRequest(BaseModel):
     sintomas: str
 
 @app.get("/health")
+@app.get("/api/ia/health")
 def health_check():
     return {
         "status": "healthy",
@@ -45,6 +46,7 @@ def health_check():
     }
 
 @app.post("/gerar-laudo")
+@app.post("/api/ia/gerar-laudo")
 def gerar_laudo(data: SintomasRequest):
     return gerador.gerar(data.sintomas)
 

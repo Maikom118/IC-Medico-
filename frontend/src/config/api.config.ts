@@ -8,8 +8,10 @@ const isProduction = import.meta.env.PROD;
 // URLs de produção (www.iamedbr.com)
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
-  BACKEND_URL: 'https://www.iamedbr.com',
+  BACKEND_URL: '/api',  // Via Traefik proxy /api/backend → 8100
+  BACKEND_BASE: '/api',
   OCR_BASE: '/api/ocr',  // Via Traefik proxy
+  IA_BASE: '/api/ia',  // Via Traefik proxy
   TRANSCRICAO_BASE: '/api/transcricao',  // Via Traefik proxy (alinhado com OCR)
 };
 
