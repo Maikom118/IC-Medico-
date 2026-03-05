@@ -9,8 +9,8 @@ const isProduction = import.meta.env.PROD;
 const PRODUCTION_CONFIG = {
   BASE_URL: 'https://www.iamedbr.com',
   BACKEND_URL: 'https://www.iamedbr.com',
-  OCR_BASE: '',  // Usa caminho relativo para evitar mixed content
-  TRANSCRICAO_BASE: '',  // Usa caminho relativo (rota raiz)
+  OCR_BASE: '/api/ocr',  // Via Traefik proxy
+  TRANSCRICAO_BASE: '/api/transcricao',  // Via Traefik proxy (alinhado com OCR)
 };
 
 // URLs de desenvolvimento (localhost)
