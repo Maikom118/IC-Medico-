@@ -2,29 +2,11 @@ version: '3.9'
 
 # ============================================
 # DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
-# SERVIÇOS: OCR + TRANSCRIÇÃO + IA + FRONTEND
-# BACKEND rodando em Dockerfile separado (port 8100)
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
+# Backend, Frontend e Database rodando separadamente
 # ============================================
 
 services:
-  # ================================
-  # BACKEND API ROUTER (referencia external port 8100)
-  # ================================
-  backend-router:
-    image: alpine
-    container_name: ic-medico-backend-router
-    restart: unless-stopped
-    networks:
-      - ic-medico-network
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.iamed-backend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api`) && !PathPrefix(`/api/ocr`) && !PathPrefix(`/api/ia`) && !PathPrefix(`/api/transcricao`)"
-        - "traefik.http.routers.iamed-backend.entrypoints=websecure"
-        - "traefik.http.routers.iamed-backend.tls=true"
-        - "traefik.http.routers.iamed-backend.priority=100"
-        - "traefik.http.services.iamed-backend.loadbalancer.server.url=http://host.docker.internal:8100"
-
   # ================================
   # OCR SERVICE (Node.js + Tesseract)
   # ================================
@@ -109,15 +91,7 @@ services:
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
         - "traefik.http.routers.iamed-transcricao.priority=220"
-        - "traefik.http.routers.iamed-transcricao.middlewares=transcricao-strip"
-        - "traefik.http.middlewares.transcricao-strip.stripprefix.prefixes=/api/transcricao"
-        - "traefik.http.middlewares.transcricao-strip.stripprefix.forceSlash=false"
         - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
-        - "traefik.http.routers.iamed-transcricao-alt.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && Path(`/transcrever-e-gerar-laudo`)"
-        - "traefik.http.routers.iamed-transcricao-alt.entrypoints=websecure"
-        - "traefik.http.routers.iamed-transcricao-alt.tls=true"
-        - "traefik.http.routers.iamed-transcricao-alt.priority=230"
-        - "traefik.http.services.iamed-transcricao-alt.loadbalancer.server.port=8300"
       resources:
         limits:
           cpus: '2'
