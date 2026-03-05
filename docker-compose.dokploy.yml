@@ -91,8 +91,6 @@ services:
         - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
         - "traefik.http.routers.iamed-transcricao.tls=true"
         - "traefik.http.routers.iamed-transcricao.priority=220"
-        - "traefik.http.routers.iamed-transcricao.middlewares=iamed-transcricao-strip"
-        - "traefik.http.middlewares.iamed-transcricao-strip.stripprefix.prefixes=/api/transcricao"
         - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
       resources:
         limits:

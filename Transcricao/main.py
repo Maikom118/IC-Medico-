@@ -80,6 +80,7 @@ async def ler_site():
 
 # --- ROTA 2: PROCESSA O AUDIO ---
 @app.post("/transcrever-e-gerar-laudo")
+@app.post("/api/transcricao/transcrever-e-gerar-laudo")
 async def transcrever_e_gerar_laudo(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
