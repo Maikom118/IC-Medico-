@@ -132,9 +132,6 @@ const [audios, setAudios] = useState<AudioDto[]>([]);
 const [exames, setExames] = useState<ExameDto[]>([]);
 const [imageFiles, setImageFiles] = useState<File[]>([]);
 const [audioVolume, setAudioVolume] = useState<number>(1);
-const [sintomas, setSintomas] = useState('');
-const [isGerandoIA, setIsGerandoIA] = useState(false);
-const [showIASection, setShowIASection] = useState(false);
 
 
 const [previews, setPreviews] = useState<ExamePreview[]>([]);
@@ -453,39 +450,6 @@ const handleSaveAudio = async (laudoId: number) => {
   console.log("🎧 Áudio salvo com sucesso");
 };
 
-// IA: gerar laudo a partir de sintomas
-const gerarLaudoIA = async () => {
-  if (!sintomas.trim()) {
-    toast.error('Digite os sintomas para gerar o laudo');
-    return;
-  }
-  setIsGerandoIA(true);
-  try {
-    const response = await fetch(API_CONFIG.getIaUrl('/api/ia/gerar-laudo'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sintomas: sintomas.trim() }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    const laudo = data.laudo ?? data;
-    const texto = [
-      laudo.diagnostico_hipotese ? `HIPÓTESE DIAGNÓSTICA:\n${laudo.diagnostico_hipotese}` : '',
-      laudo.exames_sugeridos?.length ? `EXAMES SUGERIDOS:\n- ${laudo.exames_sugeridos.join('\n- ')}` : '',
-      laudo.recomendacoes ? `RECOMENDAÇÕES:\n${laudo.recomendacoes}` : '',
-      laudo.cid_sugerido ? `CID SUGERIDO: ${laudo.cid_sugerido}` : '',
-    ].filter(Boolean).join('\n\n');
-    setReportContent(prev => prev ? `${prev}\n\n${texto}` : texto);
-    setSintomas('');
-    toast.success('Laudo gerado pela IA!');
-  } catch (err) {
-    console.error('Erro IA:', err);
-    toast.error('Erro ao gerar laudo com IA');
-  } finally {
-    setIsGerandoIA(false);
-  }
-};
-
 //Salvar Laudo no banco
 const handleSaveReport = async (): Promise<number | null> => {
   if (!selectedPatientLocal) {
@@ -497,6 +461,8 @@ const handleSaveReport = async (): Promise<number | null> => {
     toast.error("Selecione o tipo de laudo");
     return null;
   }
+
+  const safeContent = (reportContent ?? "").trim();
 
   if (safeContent.length === 0) {
     toast.error("O conteúdo do laudo está vazio");
@@ -1597,38 +1563,6 @@ const charCount = safeContent.length;
                     <p className="text-xs text-gray-500">{template.category}</p>
                   </button>
                 ))}
-              </div>
-            )}
-          </div>
-
-          {/* IA */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <button
-              onClick={() => setShowIASection(!showIASection)}
-              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">🧠</span>
-                <span className="font-medium text-gray-800">Gerar laudo com IA</span>
-              </div>
-              {showIASection ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-            </button>
-            {showIASection && (
-              <div className="border-t border-gray-200 p-3 space-y-2">
-                <textarea
-                  value={sintomas}
-                  onChange={e => setSintomas(e.target.value)}
-                  placeholder="Descreva os sintomas do paciente..."
-                  className="w-full p-2 text-sm border border-gray-200 rounded resize-none focus:outline-none focus:border-blue-400"
-                  rows={4}
-                />
-                <button
-                  onClick={gerarLaudoIA}
-                  disabled={isGerandoIA || !sintomas.trim()}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                >
-                  {isGerandoIA ? 'Gerando...' : '✨ Gerar laudo'}
-                </button>
               </div>
             )}
           </div>
