@@ -57,37 +57,54 @@ let ultimoRG = null;
    OCR AUXILIAR
 ====================================================== */
 async function executarOCR(worker, buffer) {
-  const { data: { text } } = await worker.recognize(buffer);
-  return text;
+  try {
+    console.log('🔄 Iniciando reconhecimento de texto...');
+    const { data: { text } } = await worker.recognize(buffer);
+    console.log('✅ Texto extraído com sucesso');
+    return text;
+  } catch (err) {
+    console.error('❌ Erro durante OCR:', err.message);
+    throw new Error(`Erro ao executar OCR: ${err.message}`);
+  }
 }
 
 /* ======================================================
    PROCESSAMENTO OCR
 ====================================================== */
 async function processarOCR(imagemBuffer) {
-  const bufferBase = await sharp(imagemBuffer)
-    .rotate()
-    .resize({ width: 2500 })
-    .grayscale()
-    .gamma(2.2)
-    .sharpen({ sigma: 1 })
-    .toBuffer();
+  let worker = null;
+  try {
+    console.log('📸 Iniciando processamento de imagem...');
+    
+    const bufferBase = await sharp(imagemBuffer)
+      .rotate()
+      .resize({ width: 2500 })
+      .grayscale()
+      .gamma(2.2)
+      .sharpen({ sigma: 1 })
+      .toBuffer();
+    console.log('✅ Imagem base processada');
 
-  const bufferRed = await sharp(imagemBuffer)
-    .rotate()
-    .resize({ width: 2500 })
-    .extractChannel('red')
-    .linear(2, -50)
-    .threshold(140)
-    .toBuffer();
+    const bufferRed = await sharp(imagemBuffer)
+      .rotate()
+      .resize({ width: 2500 })
+      .extractChannel('red')
+      .linear(2, -50)
+      .threshold(140)
+      .toBuffer();
+    console.log('✅ Imagem red processada');
 
-  const worker = await createWorker('por');
-  await worker.setParameters({ tessedit_pageseg_mode: '3' });
+    console.log('🤖 Inicializando Tesseract worker...');
+    worker = await createWorker('por');
+    console.log('✅ Tesseract worker inicializado');
+    
+    await worker.setParameters({ tessedit_pageseg_mode: '3' });
 
-  const rawTextBase = await executarOCR(worker, bufferBase);
-  const rawTextRed = await executarOCR(worker, bufferRed);
+    const rawTextBase = await executarOCR(worker, bufferBase);
+    const rawTextRed = await executarOCR(worker, bufferRed);
 
-  await worker.terminate();
+    await worker.terminate();
+    worker = null;
 
   /* ======================================================
      EXTRAÇÃO
@@ -139,6 +156,18 @@ async function processarOCR(imagemBuffer) {
   let dataNascimento = null;
   const datas = rawTextBase.match(/\d{2}\/\d{2}\/\d{4}/g) || [];
   if (datas.length) dataNascimento = datas.sort()[0];
+  } catch (err) {
+    console.error('❌ Erro no processamento OCR:', err.message);
+    // Garantir que o worker seja finalizado em caso de erro
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (termErr) {
+        console.error('⚠️ Erro ao finalizar worker:', termErr.message);
+      }
+    }
+    throw err;
+  }
 
   return {
     status: (cpfFinal || rgFinal) ? 'sucesso' : 'erro',
@@ -171,23 +200,28 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
     console.log('     - Buffer length:', req.file.buffer?.length || 'sem buffer');
   } else {
     console.log('   ❌ Nenhum arquivo detectado pelo multer');
-    console.log('   Possíveis causas:');
-    console.log('     - Campo enviado com nome diferente de "image"');
-    console.log('     - Nenhum arquivo foi anexado na requisição');
-    console.log('     - Requisição não é multipart/form-data');
-  }
-
-  // Log dos campos normais (se houver outros além do arquivo)
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('   Campos normais recebidos (req.body):', req.body);
-  }
-
-  if (!req.file) {
+    console.log('   ❌ Retornando erro 400 - sem arquivo');
     return res.status(400).json({
       status: 'erro',
       mensagem: 'Imagem não enviada'
     });
   }
+
+  try {
+    console.log('⏳ Iniciando processamento OCR...');
+    const resultado = await processarOCR(req.file.buffer);
+
+    ultimoRG = resultado;
+    console.log('✅ OCR processado com sucesso');
+    res.json(resultado);
+
+  } catch (err) {
+    console.error('❌ [ERRO] Falha no processamento OCR:', err);
+    console.error('   Stack:', err.stack);
+    res.status(500).json({ 
+      status: 'erro',
+      mensagem: 'Erro ao processar OCR',
+      detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
 
   try {
     const resultado = await processarOCR(req.file.buffer);
@@ -218,7 +252,35 @@ app.get('/api/rg/ultimo', (req, res) => {
 /* ======================================================
    START
 ====================================================== */
-const PORT = 8000;
-app.listen(PORT, () => {
-  console.log(`🚀 API OCR rodando em http://localhost:${PORT}`);
+const PORT = process.env.PORT || 8000;
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('\n');
+  console.log('╔════════════════════════════════════════════════════════════╗');
+  console.log('║                                                            ║');
+  console.log('║     🚀 OCR SERVICE - TESSERACT + EXPRESS                   ║');
+  console.log('║                                                            ║');
+  console.log(`║     Servidor rodando em http://0.0.0.0:${PORT}                        ║`);
+  console.log(`║     Ambiente: ${process.env.NODE_ENV || 'development'}                                   ║`);
+  console.log('║     Português OCR ativado ✅                              ║');
+  console.log('║                                                            ║');
+  console.log('╚════════════════════════════════════════════════════════════╝');
+  console.log('\n');
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('📋 SIGTERM recebido, fechando aplicação...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado com sucesso');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('📋 SIGINT recebido, fechando aplicação...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado com sucesso');
+    process.exit(0);
+  });
 });

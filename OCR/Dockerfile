@@ -7,7 +7,8 @@ FROM node:20-alpine
 RUN apk add --no-cache \
     tesseract-ocr \
     tesseract-ocr-data-por \
-    curl
+    curl \
+    bash
 
 # Criar diretório da aplicação
 WORKDIR /app
@@ -27,9 +28,9 @@ RUN mkdir -p /app/uploads /tmp/ocr /var/log/ocr
 # Expor porta
 EXPOSE 8000
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health check endpoint - aumentar timeout para dar tempo de inicializar tesseract
+HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Comando para iniciar o servidor
-CMD ["node", "ocr-limpo.js"]
+# Comando para iniciar o servidor com logging
+CMD ["node", "--max-old-space-size=2048", "ocr-limpo.js"]

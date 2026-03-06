@@ -34,9 +34,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
     deploy:
       labels:
         - "traefik.enable=true"
@@ -47,11 +47,11 @@ services:
         - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
       resources:
         limits:
-          cpus: '2'
-          memory: 3G
+          cpus: '2.5'
+          memory: 4G
         reservations:
-          cpus: '1'
-          memory: 1.5G
+          cpus: '1.5'
+          memory: 2G
 
   # ================================
   # TRANSCRIÇÃO SERVICE (Python FastAPI)
