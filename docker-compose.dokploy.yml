@@ -8,6 +8,57 @@ version: '3.9'
 
 services:
   # ================================
+  # BACKEND API (FastAPI)
+  # ================================
+  backend:
+    build:
+      context: ./backend/models/Database
+      dockerfile: Dockerfile
+      cache_from:
+        - ic-medico-backend:latest
+    image: ic-medico-backend:latest
+    container_name: ic-medico-backend
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${DB_HOST:-ic-medico-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-laudos_db}
+      - DB_USER=${DB_USER:-laudos_user}
+      - DB_PASSWORD=${senha_forte}
+      - NODE_ENV=production
+      - PYTHONUNBUFFERED=1
+      - OCR_SERVICE_URL=http://ocr:8000
+      - OCR_SERVICE_URLS=http://ocr:8000,http://ic-medico-ocr:8000,http://187.77.58.55:8000
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/var/log/backend
+    ports:
+      - "8100:8100"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-backend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api`)"
+        - "traefik.http.routers.iamed-backend.entrypoints=websecure"
+        - "traefik.http.routers.iamed-backend.tls=true"
+        - "traefik.http.routers.iamed-backend.priority=100"
+        - "traefik.http.services.iamed-backend.loadbalancer.server.port=8100"
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  # ================================
   # OCR SERVICE (Node.js + Tesseract)
   # ================================
   ocr:
@@ -156,6 +207,10 @@ networks:
         - subnet: 172.25.0.0/16
 
 volumes:
+  backend_uploads:
+    driver: local
+  backend_logs:
+    driver: local
   ocr_uploads:
     driver: local
   ocr_temp:
