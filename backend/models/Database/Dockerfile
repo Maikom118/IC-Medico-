@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar dependências Python do builder
-COPY --from=builder /app/build/.local /root/.local
+COPY --from=builder /root/.local /root/.local
 
 # Adicionar bin do Python ao PATH
 ENV PATH=/root/.local/bin:$PATH \
