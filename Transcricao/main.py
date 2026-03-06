@@ -108,9 +108,10 @@ async def transcrever_e_gerar_laudo(
             raise Exception("Transcrição vazia")
 
         # 2️⃣ Chama IA de laudo (ASSÍNCRONO)
+        ia_url = os.environ.get("IA_URL", "http://ia:8200")
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
-                "http://127.0.0.1:8200/gerar-laudo",
+                f"{ia_url}/gerar-laudo",
                 json={ "sintomas": texto }
             )
 
