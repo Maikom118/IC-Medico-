@@ -31,7 +31,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-gerador = GeradorLaudo()
+try:
+    gerador = GeradorLaudo()
+    print("✅ GeradorLaudo inicializado com sucesso")
+except Exception as e:
+    import traceback
+    print("❌ ERRO ao inicializar GeradorLaudo:", traceback.format_exc())
+    gerador = None
 
 class SintomasRequest(BaseModel):
     sintomas: str
@@ -48,7 +54,15 @@ def health_check():
 @app.post("/gerar-laudo")
 @app.post("/api/ia/gerar-laudo")
 def gerar_laudo(data: SintomasRequest):
-    return gerador.gerar(data.sintomas)
+    from fastapi import HTTPException
+    if gerador is None:
+        raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — verifique GROQ_API_KEY nos logs do container")
+    try:
+        return gerador.gerar(data.sintomas)
+    except Exception as e:
+        import traceback
+        print("❌ ERRO em /gerar-laudo:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
