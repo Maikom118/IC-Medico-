@@ -38,7 +38,14 @@ export const API_CONFIG = {
   
   // Service endpoints (construídos dinamicamente)
   getBackendUrl: (path: string) => `${config.BACKEND_URL}${path}`,
-  getOcrUrl: (path: string) => `${(config as any).OCR_BASE}${path}`,
+  getOcrUrl: (path: string) => {
+    if (isProduction) {
+      if (path === '/api/ocr') return `${config.BACKEND_URL}/api/ocr-proxy`;
+      if (path === '/api/rg/ultimo') return `${config.BACKEND_URL}/api/rg-proxy/ultimo`;
+      return `${config.BACKEND_URL}${path}`;
+    }
+    return `${(config as any).OCR_BASE}${path}`;
+  },
   getIaUrl: (path: string) => `${config.BASE_URL}/ia${path}`,
   getTranscricaoUrl: (path: string) => `${(config as any).TRANSCRICAO_BASE}${path}`,
 };
