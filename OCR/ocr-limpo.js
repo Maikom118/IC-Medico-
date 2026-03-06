@@ -156,18 +156,6 @@ async function processarOCR(imagemBuffer) {
   let dataNascimento = null;
   const datas = rawTextBase.match(/\d{2}\/\d{2}\/\d{4}/g) || [];
   if (datas.length) dataNascimento = datas.sort()[0];
-  } catch (err) {
-    console.error('❌ Erro no processamento OCR:', err.message);
-    // Garantir que o worker seja finalizado em caso de erro
-    if (worker) {
-      try {
-        await worker.terminate();
-      } catch (termErr) {
-        console.error('⚠️ Erro ao finalizar worker:', termErr.message);
-      }
-    }
-    throw err;
-  }
 
   return {
     status: (cpfFinal || rgFinal) ? 'sucesso' : 'erro',
@@ -178,6 +166,17 @@ async function processarOCR(imagemBuffer) {
       data_nascimento: dataNascimento
     }
   };
+  } catch (err) {
+    console.error('❌ Erro no processamento OCR:', err.message);
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (termErr) {
+        console.error('⚠️ Erro ao finalizar worker:', termErr.message);
+      }
+    }
+    throw err;
+  }
 }
 
 /* ======================================================
