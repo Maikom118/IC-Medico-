@@ -98,7 +98,7 @@ async function sendRGToOCR() {
   formDataReq.append('image', file);
 
   try {
-    const response = await fetch(API_CONFIG.getOcrUrl('/api/ocr'), {
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/ocr`, {
       method: 'POST',
       body: formDataReq
     });
@@ -162,7 +162,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch(API_CONFIG.getOcrUrl('/api/rg/ultimo'));
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/rg/ultimo`);
     if (!response.ok) return;
 
     const result = await response.json();
@@ -690,12 +690,18 @@ const handleSave = async () => {
   onClick={sendRGToOCR}
   disabled={!formData.rgPhoto}
   className={`
-    flex items-center justify-center gap-2 px-5 py-3 rounded-xl shadow-lg transition-all border
-    ${
-      formData.rgPhoto
-        ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-700'
-        : 'bg-gray-300 text-gray-600 cursor-not-allowed border-gray-300'
-    }
+   flex items-center justify-center gap-2
+    px-5 py-3
+    rounded-xl
+    shadow-lg
+    transition-all
+    ${formData.rgPhoto
+      ? 'bg-green-600 hover:bg-green-700 text-white'
+      : 'bg-gray-400 cursor-not-allowed text-gray-700'}
+
+    ${formData.rgPhoto
+      ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-700'
+      : 'bg-gray-300 text-gray-600 cursor-not-allowed border border-gray-300'}
   `}
 >
   <Upload size={20} />
