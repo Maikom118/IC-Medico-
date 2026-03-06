@@ -222,18 +222,6 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
       status: 'erro',
       mensagem: 'Erro ao processar OCR',
       detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
-
-  try {
-    const resultado = await processarOCR(req.file.buffer);
-
-    ultimoRG = resultado;
-    res.json(resultado);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ 
-      status: 'erro',
-      mensagem: 'Erro ao processar OCR' 
     });
   }
 });
