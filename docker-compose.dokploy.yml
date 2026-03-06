@@ -26,6 +26,7 @@ services:
       - "8000:8000"
     networks:
       - ic-medico-network
+      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -60,6 +61,7 @@ services:
       - "8300:8300"
     networks:
       - ic-medico-network
+      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
       interval: 30s
@@ -95,6 +97,7 @@ services:
       - "8200:8200"
     networks:
       - ic-medico-network
+      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
       interval: 30s
@@ -115,6 +118,8 @@ networks:
     ipam:
       config:
         - subnet: 172.25.0.0/16
+  dokploy-network:
+    external: true
 
 volumes:
   ocr_uploads:
