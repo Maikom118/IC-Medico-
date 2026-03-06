@@ -32,14 +32,13 @@ services:
       timeout: 15s
       retries: 5
       start_period: 90s
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.iamed-ocr.rule=Host(`ocr.iamedbr.com`)"
-        - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
-        - "traefik.http.routers.iamed-ocr.tls=true"
-        - "traefik.http.routers.iamed-ocr.priority=200"
-        - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-ocr.rule=Host(`ocr.iamedbr.com`) || ((Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`)))"
+      - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
+      - "traefik.http.routers.iamed-ocr.tls=true"
+      - "traefik.http.routers.iamed-ocr.priority=200"
+      - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
 
   # ================================
   # TRANSCRIÇÃO SERVICE (Python FastAPI)
@@ -67,14 +66,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
-        - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
-        - "traefik.http.routers.iamed-transcricao.tls=true"
-        - "traefik.http.routers.iamed-transcricao.priority=190"
-        - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+      - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
+      - "traefik.http.routers.iamed-transcricao.tls=true"
+      - "traefik.http.routers.iamed-transcricao.priority=190"
+      - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
 
   # ================================
   # IA SERVICE (Python FastAPI)
@@ -103,14 +101,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
-        - "traefik.http.routers.iamed-ia.entrypoints=websecure"
-        - "traefik.http.routers.iamed-ia.tls=true"
-        - "traefik.http.routers.iamed-ia.priority=180"
-        - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
+      - "traefik.http.routers.iamed-ia.entrypoints=websecure"
+      - "traefik.http.routers.iamed-ia.tls=true"
+      - "traefik.http.routers.iamed-ia.priority=180"
+      - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
 
 networks:
   ic-medico-network:
