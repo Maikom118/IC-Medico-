@@ -48,8 +48,26 @@ def health_check():
     return {
         "status": "healthy",
         "service": "ia",
+        "gerador_ok": gerador is not None,
+        "groq_key_set": bool(os.getenv("GROQ_API_KEY")),
         "timestamp": os.environ.get("TIMESTAMP", "N/A")
     }
+
+@app.post("/test")
+@app.post("/api/ia/test")
+def test_ia():
+    """Testa a conexão com Groq sem precisar de áudio"""
+    from fastapi import HTTPException
+    if gerador is None:
+        raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — veja logs do container")
+    try:
+        resultado = gerador.gerar("Paciente com febre e dor de cabeça")
+        return {"status": "ok", "laudo": resultado}
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print("❌ ERRO em /test:", tb)
+        raise HTTPException(status_code=500, detail=tb)
 
 @app.post("/gerar-laudo")
 @app.post("/api/ia/gerar-laudo")

@@ -115,7 +115,13 @@ async def transcrever_e_gerar_laudo(
                 json={ "sintomas": texto }
             )
 
-        response.raise_for_status()
+        if response.status_code != 200:
+            ia_body = response.text
+            print(f"❌ IA retornou {response.status_code}: {ia_body}")
+            return JSONResponse(
+                status_code=500,
+                content={ "detail": f"IA erro {response.status_code}: {ia_body[:1000]}" }
+            )
         laudo = response.json()
 
         # 3️⃣ Retorna só o laudo
