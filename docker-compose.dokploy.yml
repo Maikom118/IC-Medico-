@@ -112,6 +112,29 @@ services:
       - "traefik.http.routers.iamed-ia.priority=180"
       - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
 
+  # ================================
+  # FRONTEND (React + nginx)
+  # ================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ic-medico-frontend:latest
+    container_name: ic-medico-frontend
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    depends_on:
+      - ocr
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
+      - "traefik.http.routers.iamed-frontend.entrypoints=websecure"
+      - "traefik.http.routers.iamed-frontend.tls=true"
+      - "traefik.http.routers.iamed-frontend.priority=100"
+      - "traefik.http.services.iamed-frontend.loadbalancer.server.port=80"
+
 networks:
   ic-medico-network:
     driver: bridge
