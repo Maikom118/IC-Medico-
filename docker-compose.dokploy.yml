@@ -35,7 +35,7 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.iamed-ocr.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
+        - "traefik.http.routers.iamed-ocr.rule=Host(`ocr.iamedbr.com`)"
         - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
         - "traefik.http.routers.iamed-ocr.tls=true"
         - "traefik.http.routers.iamed-ocr.priority=200"
