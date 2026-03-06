@@ -2,7 +2,7 @@ version: '3.9'
 
 # ============================================
 # DOCKER COMPOSE - DOKPLOY (www.iamedbr.com)
-# SERVIÇO: OCR APENAS
+# SERVIÇOS: OCR + TRANSCRIÇÃO + IA
 # ============================================
 
 services:
@@ -38,7 +38,79 @@ services:
         - "traefik.http.routers.iamed-ocr.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
         - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
         - "traefik.http.routers.iamed-ocr.tls=true"
+        - "traefik.http.routers.iamed-ocr.priority=200"
         - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
+
+  # ================================
+  # TRANSCRIÇÃO SERVICE (Python FastAPI)
+  # ================================
+  transcricao:
+    build:
+      context: ./Transcricao
+      dockerfile: Dockerfile
+    image: ic-medico-transcricao:latest
+    container_name: ic-medico-transcricao
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8300
+    volumes:
+      - transcricao_uploads:/app/uploads
+      - transcricao_models:/app/models
+    ports:
+      - "8300:8300"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+        - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
+        - "traefik.http.routers.iamed-transcricao.tls=true"
+        - "traefik.http.routers.iamed-transcricao.priority=190"
+        - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
+
+  # ================================
+  # IA SERVICE (Python FastAPI)
+  # ================================
+  ia:
+    build:
+      context: ./IA_IC
+      dockerfile: Dockerfile
+    image: ic-medico-ia:latest
+    container_name: ic-medico-ia
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8200
+      - GROQ_API_KEY=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
+    volumes:
+      - ia_models:/app/models
+      - ia_data:/app/data
+    ports:
+      - "8200:8200"
+    networks:
+      - ic-medico-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
+        - "traefik.http.routers.iamed-ia.entrypoints=websecure"
+        - "traefik.http.routers.iamed-ia.tls=true"
+        - "traefik.http.routers.iamed-ia.priority=180"
+        - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
 
 networks:
   ic-medico-network:
@@ -51,4 +123,12 @@ volumes:
   ocr_uploads:
     driver: local
   ocr_temp:
+    driver: local
+  transcricao_uploads:
+    driver: local
+  transcricao_models:
+    driver: local
+  ia_models:
+    driver: local
+  ia_data:
     driver: local
