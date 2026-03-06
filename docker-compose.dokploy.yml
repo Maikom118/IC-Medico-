@@ -127,6 +127,8 @@ services:
       - dokploy-network
     depends_on:
       - ocr
+      - ia
+      - transcricao
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
