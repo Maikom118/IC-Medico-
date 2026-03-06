@@ -867,7 +867,9 @@ mediaRecorder.onstop = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Erro na API');
+        const errBody = await response.text().catch(() => '');
+        console.error('❌ Transcrição HTTP', response.status, errBody);
+        throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
       }
 
       const data = await response.json();
@@ -964,7 +966,9 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
     );
 
     if (!response.ok) {
-      throw new Error("Erro na API");
+      const errBody = await response.text().catch(() => '');
+      console.error('❌ Transcrição HTTP', response.status, errBody);
+      throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
     }
 
     const data = await response.json();
