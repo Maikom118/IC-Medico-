@@ -90,6 +90,11 @@ services:
       - PYTHONUNBUFFERED=1
       - PORT=8200
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - DB_HOST=ic-medico-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
     volumes:
       - ia_models:/app/models
       - ia_data:/app/data
@@ -113,6 +118,83 @@ services:
       - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
 
   # ================================
+  # BACKEND SERVICE (Python FastAPI + PostgreSQL)
+  # ================================
+  backend:
+    build:
+      context: ./backend/models/Database
+      dockerfile: Dockerfile
+    image: ic-medico-backend:latest
+    container_name: ic-medico-backend
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8100
+      - DB_HOST=ic-medico-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - OCR_SERVICE_URL=http://ocr:8000
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "8100:8100"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/pacientes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=false"
+
+  # ================================
+  # BACKEND SERVICE (FastAPI + PostgreSQL)
+  # ================================
+  backend:
+    build:
+      context: ./backend/models/Database
+      dockerfile: Dockerfile
+    image: ic-medico-backend:latest
+    container_name: ic-medico-backend
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8100
+      - DB_HOST=ic-medico-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - OCR_SERVICE_URL=http://ocr:8000
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "8100:8100"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    depends_on:
+      - ocr
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/pacientes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-backend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api/`)"
+      - "traefik.http.routers.iamed-backend.entrypoints=websecure"
+      - "traefik.http.routers.iamed-backend.tls=true"
+      - "traefik.http.routers.iamed-backend.priority=150"
+      - "traefik.http.services.iamed-backend.loadbalancer.server.port=8100"
+
+  # ================================
   # FRONTEND (React + nginx)
   # ================================
   frontend:
@@ -129,6 +211,8 @@ services:
       - ocr
       - ia
       - transcricao
+      - backend
+      - backend
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
@@ -158,4 +242,8 @@ volumes:
   ia_models:
     driver: local
   ia_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  backend_uploads:
     driver: local

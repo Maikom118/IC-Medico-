@@ -7,7 +7,7 @@ const isProduction = import.meta.env.PROD;
 
 // URLs de produção (www.iamedbr.com via Traefik)
 const PRODUCTION_CONFIG = {
-  BACKEND_URL: 'https://www.iamedbr.com',
+  BACKEND_URL: 'https://www.iamedbr.com/api',
   OCR_URL: 'https://www.iamedbr.com',
   IA_URL: 'https://www.iamedbr.com',
   TRANSCRICAO_URL: 'https://www.iamedbr.com',
@@ -15,7 +15,7 @@ const PRODUCTION_CONFIG = {
 
 // URLs de desenvolvimento (localhost)
 const DEVELOPMENT_CONFIG = {
-  BACKEND_URL: 'http://localhost:8100',
+  BACKEND_URL: 'http://localhost:8100/api',
   OCR_URL: 'http://localhost:8000',
   IA_URL: 'http://localhost:8200',
   TRANSCRICAO_URL: 'http://localhost:8300',
