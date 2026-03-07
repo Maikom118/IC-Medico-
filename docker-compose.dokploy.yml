@@ -118,41 +118,6 @@ services:
       - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
 
   # ================================
-  # BACKEND SERVICE (Python FastAPI + PostgreSQL)
-  # ================================
-  backend:
-    build:
-      context: ./backend/models/Database
-      dockerfile: Dockerfile
-    image: ic-medico-backend:latest
-    container_name: ic-medico-backend
-    restart: unless-stopped
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8100
-      - DB_HOST=ic-medico-postgres
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - OCR_SERVICE_URL=http://ocr:8000
-    volumes:
-      - backend_uploads:/app/uploads
-    ports:
-      - "8100:8100"
-    networks:
-      - ic-medico-network
-      - dokploy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8100/api/pacientes"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - "traefik.enable=false"
-
-  # ================================
   # BACKEND SERVICE (FastAPI + PostgreSQL)
   # ================================
   backend:
@@ -212,7 +177,6 @@ services:
       - ia
       - transcricao
       - backend
-      - backend
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
@@ -242,8 +206,6 @@ volumes:
   ia_models:
     driver: local
   ia_data:
-    driver: local
-  backend_uploads:
     driver: local
   backend_uploads:
     driver: local
