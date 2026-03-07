@@ -152,12 +152,7 @@ services:
       retries: 3
       start_period: 45s
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.iamed-backend.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/api/`)"
-      - "traefik.http.routers.iamed-backend.entrypoints=websecure"
-      - "traefik.http.routers.iamed-backend.tls=true"
-      - "traefik.http.routers.iamed-backend.priority=150"
-      - "traefik.http.services.iamed-backend.loadbalancer.server.port=8100"
+      - "traefik.enable=false"
 
   # ================================
   # FRONTEND (React + nginx)
