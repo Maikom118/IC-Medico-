@@ -81,7 +81,7 @@ def listar_audios_laudo(
         {
             "id": a.id,
             "laudo_id": a.laudo_id,
-            "url": f"https://api.iamedbr.com/{a.caminho_arquivo.replace('\\', '/')}",
+            "url": "https://api.iamedbr.com/{}".format(a.caminho_arquivo.replace('\\', '/')),
             "duracao": a.duracao,
             "data_upload": a.data_upload,
         }
