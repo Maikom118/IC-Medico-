@@ -1,7 +1,11 @@
 import os
-from typing import List
 import psycopg2
+from typing import List
 from pydantic import BaseModel, Field
+
+# ⚠️ CARREGA AS VARIÁVEIS DO .ENV ANTES DE TUDO
+from dotenv import load_dotenv
+load_dotenv()
 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
@@ -10,6 +14,7 @@ from langchain_core.output_parsers import JsonOutputParser
 # -------- MODELO DE SAÍDA --------
 class LaudoMedico(BaseModel):
     paciente_nome: str = Field(description="Nome completo do paciente")
+    laudo_estruturado_completo: str = Field(description="O texto do laudo completo, copiando RIGOROSAMENTE as seções, cabeçalhos e formatação do Laudo de Referência fornecido no contexto.")
     diagnostico_hipotese: str = Field(description="Hipótese diagnóstica baseada nos sintomas")
     exames_sugeridos: List[str] = Field(description="Lista de exames complementares")
     recomendacoes: str = Field(description="Orientações médicas detalhadas")
@@ -30,50 +35,38 @@ class GeradorLaudo:
 
         self.parser = JsonOutputParser(pydantic_object=LaudoMedico)
 
-        # ⚠️ PROMPT ATUALIZADO: Agora ele recebe a variável {contexto}
         self.prompt = PromptTemplate(
             template="""
-Você é um assistente médico integrado a um sistema clínico.
-Utilize o HISTÓRICO DE LAUDOS DE REFERÊNCIA (Contexto) abaixo para guiar a estrutura, linguagem e formatação do seu laudo.
+Você é um assistente médico automatizado. Sua função é atuar como um preenchedor de templates rigoroso.
 
-Siga rigorosamente o pipeline abaixo antes de gerar qualquer resposta:
+Siga rigorosamente o pipeline abaixo:
 
 ETAPA 1  Identificação de dados
 Não presuma nem invente informações ausentes. Se não houver nome, deixe vazio.
 
-ETAPA 2  Consulta de padrões clínicos
-Utilize os laudos de referência fornecidos abaixo como base.
-Respeite integralmente o padrão institucional adotado.
+ETAPA 2  MOLDE ESTRUTURAL (OBRIGATÓRIO)
+O HISTÓRICO DE LAUDOS DE REFERÊNCIA abaixo não é uma sugestão, é um TEMPLATE.
+Analise os cabeçalhos presentes no contexto (ex: "INDICAÇÃO:", "TÉCNICA:", "ACHADOS:", "CONCLUSÃO:").
+Você DEVE gerar o campo 'laudo_estruturado_completo' copiando EXATAMENTE essas mesmas seções.
+NÃO CRIE seções novas. NÃO ALTERE a ordem das seções. Apenas preencha o molde com os novos dados.
 
 ETAPA 3  Análise clínica
-Analise exclusivamente os sintomas e informações fornecidas pelo médico.
-Utilize linguagem médica técnica, clara e responsável.
+Preencha o molde utilizando linguagem médica técnica, clara e responsável, baseada exclusivamente nas informações fornecidas pelo médico atual.
 
-ETAPA 4  Hipóteses diagnósticas
-Gere apenas hipóteses diagnósticas clínicas. Sugira CID compatível quando possível. Não forneça diagnóstico definitivo.
-
-ETAPA 5  Exames e condutas
-Sugira exames complementares compatíveis com as hipóteses. Indique condutas iniciais seguras e não invasivas. Não prescreva medicamentos.
-
-ETAPA 6  Validação ética e clínica
-Verifique consistência clínica do laudo. Caso faltem dados, registre de forma clara e objetiva.
-
-Regras obrigatórias:
-- Não invente dados do paciente.
-- Baseie-se fortemente nos laudos de referência fornecidos.
-- Não substitua a avaliação médica presencial.
+ETAPA 4  Validação
+Verifique se a estrutura visual gerada está idêntica à estrutura encontrada no banco de dados.
 
 =========================================
-HISTÓRICO DE LAUDOS DE REFERÊNCIA (Contexto da tabela laudo_chunks):
+HISTÓRICO DE LAUDOS DE REFERÊNCIA (SEU MOLDE OBRIGATÓRIO):
 {contexto}
 =========================================
 
-INFORMAÇÕES FORNECIDAS PELO MÉDICO:
+INFORMAÇÕES FORNECIDAS PELO MÉDICO (PREENCHA O MOLDE COM ISSO):
 {sintomas}
 
 {format_instructions}
 """,
-            input_variables=["sintomas", "contexto"], # <-- Adicionado 'contexto'
+            input_variables=["sintomas", "contexto"],
             partial_variables={
                 "format_instructions": self.parser.get_format_instructions()
             }
@@ -87,7 +80,7 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
         contenha o tipo do exame especificado.
         """
         try:
-            # 1. Conecta ao banco de dados usando as variáveis do .env
+            # Conecta ao banco de dados usando as variáveis do .env
             conn = psycopg2.connect(
                 host=os.getenv("DB_HOST"),
                 database=os.getenv("DB_NAME"),
@@ -96,8 +89,7 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
             )
             cursor = conn.cursor()
 
-            # 2. Faz a busca SQL na coluna 'text'
-            # O ILIKE ignora maiúsculas/minúsculas.
+            # Faz a busca SQL na coluna 'text' ignorando maiúsculas/minúsculas
             query = """
                 SELECT text 
                 FROM laudo_chunks 
@@ -112,15 +104,15 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
             # Pega todos os resultados encontrados
             resultados = cursor.fetchall()
 
-            # 3. Fecha a conexão
+            # Fecha a conexão
             cursor.close()
             conn.close()
 
-            # 4. Se não achar nada, retorna um aviso pro LLaMA saber
+            # Se não achar nada, retorna um aviso pro LLaMA saber
             if not resultados:
                 return "Nenhum laudo de referência encontrado para este tipo de exame no banco de dados."
 
-            # 5. Formata os resultados (linha[0] acessa o conteúdo da coluna 'text')
+            # Formata os resultados (linha[0] acessa o conteúdo da coluna 'text')
             chunks_formatados = "\n\n".join([f"Laudo Ref {i+1}:\n{linha[0]}" for i, linha in enumerate(resultados)])
             return chunks_formatados
 
@@ -128,9 +120,9 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
             print(f"❌ ERRO AO CONECTAR NO POSTGRESQL: {e}")
             return "Erro ao buscar contexto no banco de dados."
 
-    def gerar(self, sintomas_paciente: str):
-        # 1. O Python vai no banco (RAG) e pega a informação da tabela laudo_chunks
-        contexto_recuperado = self.buscar_chunks_no_banco(sintomas_paciente)
+    def gerar(self, sintomas_paciente: str, tipo_exame: str):
+        # 1. O Python vai no banco (PostgreSQL) e puxa os laudos baseados no tipo do exame
+        contexto_recuperado = self.buscar_chunks_no_banco(tipo_exame)
         
         # 2. Passamos os sintomas E o contexto do banco para o LLaMA
         return self.chain.invoke({
@@ -143,11 +135,14 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
 if __name__ == "__main__":
     gerador = GeradorLaudo()
 
+    print("\nBuscando contexto no banco e gerando laudo...\n")
+    
+    # Passamos os sintomas E o tipo do exame!
     resultado = gerador.gerar(
-        "Paciente com febre alta, dor no corpo, tosse seca e cansaço há 3 dias."
+        sintomas_paciente="Paciente relata dor pélvica. Útero em AVF, contornos regulares. Endométrio com 5mm.",
+        tipo_exame="transvaginal"
     )
 
     print("\n===== LAUDO GERADO =====\n")
     print(resultado)
     print("\n=======================\n")
-    print("Módulo GeradorLaudo com RAG pronto para uso.")
