@@ -39,8 +39,10 @@ except Exception as e:
     print("❌ ERRO ao inicializar GeradorLaudo:", traceback.format_exc())
     gerador = None
 
+# ⚠️ AQUI ESTÁ A CORREÇÃO: Adicionamos o 'tipo_exame' no modelo
 class SintomasRequest(BaseModel):
     sintomas: str
+    tipo_exame: str = "Geral" # Valor padrão para não quebrar requisições antigas
 
 @app.get("/health")
 @app.get("/api/ia/health")
@@ -61,7 +63,8 @@ def test_ia():
     if gerador is None:
         raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — veja logs do container")
     try:
-        resultado = gerador.gerar("Paciente com febre e dor de cabeça")
+        # ⚠️ CORREÇÃO: Passando um tipo de exame padrão no teste
+        resultado = gerador.gerar("Paciente com febre e dor de cabeça", "Geral")
         return {"status": "ok", "laudo": resultado}
     except Exception as e:
         import traceback
@@ -76,7 +79,8 @@ def gerar_laudo(data: SintomasRequest):
     if gerador is None:
         raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — verifique GROQ_API_KEY nos logs do container")
     try:
-        return gerador.gerar(data.sintomas)
+        # ⚠️ CORREÇÃO PRINCIPAL: Passando sintomas E tipo_exame para o gerador
+        return gerador.gerar(data.sintomas, data.tipo_exame)
     except Exception as e:
         import traceback
         print("❌ ERRO em /gerar-laudo:", traceback.format_exc())
