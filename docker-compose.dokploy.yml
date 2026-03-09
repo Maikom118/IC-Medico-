@@ -94,6 +94,7 @@ services:
       - DB_PORT=5432
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
       - DB_PASSWORD=${DB_PASSWORD}
     volumes:
       - ia_models:/app/models
