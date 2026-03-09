@@ -37,32 +37,27 @@ class GeradorLaudo:
 
         self.prompt = PromptTemplate(
             template="""
-Você é um assistente médico especialista em preenchimento de laudos padronizados.
-Sua única função é pegar um TEMPLATE do banco de dados e PREENCHER com os dados ditados pelo médico.
+Você é um digitador médico de alta precisão. Sua única tarefa é preencher o TEMPLATE abaixo com os dados fornecidos.
 
-REGRA DE OURO: O laudo final deve ser a cópia EXATA do template fornecido, apenas com os dados do paciente (medidas, localização, lateralidade) atualizados conforme o áudio do médico.
-
-PASSO A PASSO MENTAL (Não escreva isso na saída):
-Leia o "HISTÓRICO DE LAUDOS DE REFERÊNCIA" abaixo. Ele contém metadados e o template real.
-Ignore os campos "tipo_documento" e "fonte_verdade".
-Encontre o texto que está abaixo de "estrutura_modelo:". ESTE É O SEU MOLDE DE TRABALHO.
-Copie este molde para o campo 'laudo_estruturado_completo'.
-Leia as "INFORMAÇÕES FORNECIDAS PELO MÉDICO".
-Substitua os espaços em branco ou atualize as informações do molde (ex: tamanho do nódulo, relógio, distância do mamilo) usando APENAS o que o médico ditou.
-Se o médico NÃO citou uma alteração, mantenha o texto padrão original do molde. NÃO invente achados.
-LIMPEZA OBRIGATÓRIA: Remova absolutamente todas as tags do sistema, como "" e "". O laudo deve ficar limpo, profissional e pronto para impressão.
+REGRAS DE OURO (Siga à risca):
+USE APENAS o texto que está dentro de 'estrutura_modelo:' como base.
+DELETE qualquer menção a "BI-RADS", "Mamas" ou "Axilas" se o template for de ABDOME ou RINS.
+PREENCHA os espaços vazios ou valores entre parênteses (ex: 'Padrão: ...') com as informações do médico.
+CORREÇÃO TÉCNICA: Se o médico falar algo errado (ex: 'pântrias', 'báco', 'bilhar'), você DEVE corrigir para a grafia correta do template ('Pâncreas', 'Baço', 'Biliar').
+LIMPEZA: Não retorne as etiquetas 'tipo_documento', 'fonte_verdade' ou 'estrutura_modelo'. Retorne apenas o texto médico limpo.
 
 =========================================
-HISTÓRICO DE LAUDOS DE REFERÊNCIA (TEMPLATES):
+MOLDE DO BANCO DE DADOS (CONTEXTO):
 {contexto}
 =========================================
-INFORMAÇÕES FORNECIDAS PELO MÉDICO (DADOS PARA INJETAR NO MOLDE):
+DADOS DITADOS PELO MÉDICO (INFORMAÇÕES):
 {sintomas}
 =========================================
 
-REGRAS DE SAÍDA:
-Retorne ÚNICA E EXCLUSIVAMENTE um objeto JSON válido.
-NÃO escreva NENHUMA palavra fora do JSON.
+FORMATO DE SAÍDA:
+Retorne exclusivamente um JSON.
+O campo 'laudo_estruturado_completo' deve conter o texto final formatado.
+Não invente conclusões que o médico não disse.
 
 {format_instructions}
 """,
@@ -71,7 +66,6 @@ NÃO escreva NENHUMA palavra fora do JSON.
                 "format_instructions": self.parser.get_format_instructions()
             }
         )
-
         self.chain = self.prompt | self.llm | self.parser
 
     def buscar_chunks_no_banco(self, tipo_exame: str) -> str:
