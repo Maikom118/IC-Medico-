@@ -1,17 +1,15 @@
-from fastapi import FastAPI
+import os
+import httpx
+import shutil
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from dotenv import load_dotenv
-
-from src.model_arch import GeradorLaudo
 
 load_dotenv()
 
-import os
-
 app = FastAPI()
 
-# 🔓 LIBERA O FRONT
+# 🔓 Configuração de CORS (Igual ao da IA para manter consistência)
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -19,7 +17,6 @@ allowed_origins = [
     "https://iamedbr.com",
 ]
 
-# Em desenvolvimento, permitir qualquer origem
 if os.getenv("NODE_ENV") == "development":
     allowed_origins = ["*"]
 
@@ -31,61 +28,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-try:
-    gerador = GeradorLaudo()
-    print("✅ GeradorLaudo inicializado com sucesso")
-except Exception as e:
-    import traceback
-    print("❌ ERRO ao inicializar GeradorLaudo:", traceback.format_exc())
-    gerador = None
+# Configurações de diretório
+UPLOAD_DIR = "temp_audios"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# ⚠️ AQUI ESTÁ A CORREÇÃO: Adicionamos o 'tipo_exame' no modelo
-class SintomasRequest(BaseModel):
-    sintomas: str
-    tipo_exame: str = "Geral" # Valor padrão para não quebrar requisições antigas
+# 🎙️ Simulando a função de transcrição (Substitua pela sua chamada real ao Whisper)
+async def transcrever_audio(caminho_arquivo: str) -> str:
+    # Aqui entraria o seu: model.transcribe(caminho_arquivo)
+    # Por agora, vamos assumir que o texto foi extraído com sucesso
+    return "Texto extraído do áudio pelo Whisper"
+
+@app.post("/transcrever-e-gerar-laudo")
+@app.post("/api/transcricao/transcrever-e-gerar-laudo")
+async def transcrever_e_gerar_laudo(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    tipo_exame: str = Form("Geral")  # 👈 1. RECEBE O TIPO DO EXAME DO REACT
+):
+    temp_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    try:
+        # Salva o arquivo temporariamente
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 1️⃣ Transcrição (Whisper)
+        # texto_transcrito = await transcrever_audio(temp_path)
+        # Vamos usar um placeholder, mas aqui você usa o seu código atual do Whisper
+        texto_transcrito = "Simulação de transcrição médica" 
+
+        # 2️⃣ CHAMA A API DE IA (Porta 8200) REPASSANDO O BASTÃO
+        ia_url = os.environ.get("IA_URL", "http://localhost:8200")
+        
+        async with httpx.AsyncClient(timeout=120) as client:
+            print(f"🚀 Enviando para IA: {tipo_exame}")
+            
+            response = await client.post(
+                f"{ia_url}/api/ia/gerar-laudo",
+                json={
+                    "sintomas": texto_transcrito,
+                    "tipo_exame": tipo_exame  # 👈 2. REPASSA O NOME DO EXAME PARA A IA
+                }
+            )
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"IA erro {response.status_code}: {response.text}"
+            )
+
+        return response.json()
+
+    except Exception as e:
+        print(f"❌ ERRO NA TRANSCRIÇÃO: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Limpeza do arquivo temporário
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 @app.get("/health")
-@app.get("/api/ia/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": "ia",
-        "gerador_ok": gerador is not None,
-        "groq_key_set": bool(os.getenv("GROQ_API_KEY")),
-        "timestamp": os.environ.get("TIMESTAMP", "N/A")
-    }
-
-@app.post("/test")
-@app.post("/api/ia/test")
-def test_ia():
-    """Testa a conexão com Groq sem precisar de áudio"""
-    from fastapi import HTTPException
-    if gerador is None:
-        raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — veja logs do container")
-    try:
-        # ⚠️ CORREÇÃO: Passando um tipo de exame padrão no teste
-        resultado = gerador.gerar("Paciente com febre e dor de cabeça", "Geral")
-        return {"status": "ok", "laudo": resultado}
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print("❌ ERRO em /test:", tb)
-        raise HTTPException(status_code=500, detail=tb)
-
-@app.post("/gerar-laudo")
-@app.post("/api/ia/gerar-laudo")
-def gerar_laudo(data: SintomasRequest):
-    from fastapi import HTTPException
-    if gerador is None:
-        raise HTTPException(status_code=503, detail="GeradorLaudo não inicializado — verifique GROQ_API_KEY nos logs do container")
-    try:
-        # ⚠️ CORREÇÃO PRINCIPAL: Passando sintomas E tipo_exame para o gerador
-        return gerador.gerar(data.sintomas, data.tipo_exame)
-    except Exception as e:
-        import traceback
-        print("❌ ERRO em /gerar-laudo:", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+def health():
+    return {"status": "healthy", "service": "transcricao"}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8200)
+    uvicorn.run(app, host="0.0.0.0", port=8300)
