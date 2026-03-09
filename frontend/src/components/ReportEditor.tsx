@@ -839,6 +839,7 @@ mediaRecorder.onstop = () => {
   };
 
   // Transcrever áudio do backend
+// Transcrever áudio do backend
   const transcribeBackendAudio = async (audioUrl: string, audioId: number) => {
     try {
       setIsTranscribing(true);
@@ -857,6 +858,9 @@ mediaRecorder.onstop = () => {
           type: audioBlob.type || 'audio/webm',
         })
       );
+      
+      // ⚠️ AQUI ESTÁ A MÁGICA 1: Enviando o tipo do exame selecionado!
+      formData.append("tipo_exame", reportType || "Geral");
 
       const response = await fetch(
         API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
@@ -881,7 +885,9 @@ mediaRecorder.onstop = () => {
 
       setTranscriptionProgress('Gerando laudo médico...');
 
-      const textoLaudo = `
+      // ⚠️ AQUI ESTÁ A MÁGICA 2: Pegando o laudo estruturado do RAG!
+      // Se por algum motivo o laudo_estruturado falhar, ele usa o formato antigo como fallback de segurança
+      const textoLaudo = laudo.laudo_estruturado_completo || `
 HIPÓTESE DIAGNÓSTICA:
 ${laudo.diagnostico_hipotese}
 
@@ -911,7 +917,6 @@ CID SUGERIDO: ${laudo.cid_sugerido}
       setTimeout(() => setAudioError(''), 10000);
     }
   };
-
 //Slavar Audio no banco
 const uploadAudioToBackend = async (audioBlob: Blob) => {
   if (!laudoId) {
@@ -940,49 +945,54 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
   // Função para transcrever áudio usando a API FastAPI   
       // 2. Solicitar transcrição
       
-    const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
-  toast.info("Transcrevendo e gerando laudo...");
+    // Função para transcrever áudio usando a API FastAPI   
+  const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
+    toast.info("Transcrevendo e gerando laudo...");
 
-  try {
-    console.log("CHEGOU ATÉ AQUI");
+    try {
+      console.log("CHEGOU ATÉ AQUI");
 
-    setIsTranscribing(true);
-    setTranscriptionProgress("Enviando áudio para análise...");
+      setIsTranscribing(true);
+      setTranscriptionProgress("Enviando áudio para análise...");
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File([audioBlob], `audio_${recordingId}.webm`, {
-        type: audioBlob.type || "audio/webm",
-      })
-    );
+      const formData = new FormData();
+      formData.append(
+        "file",
+        new File([audioBlob], `audio_${recordingId}.webm`, {
+          type: audioBlob.type || "audio/webm",
+        })
+      );
+      
+      // ⚠️ AQUI ESTÁ A MÁGICA 1: Enviando o tipo do exame selecionado!
+      formData.append("tipo_exame", reportType || "Geral");
 
-    const response = await fetch(
-      API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
-      {
-        method: "POST",
-        body: formData,
+      const response = await fetch(
+        API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => '');
+        console.error('❌ Transcrição HTTP', response.status, errBody);
+        throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
       }
-    );
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
-      console.error('❌ Transcrição HTTP', response.status, errBody);
-      throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
-    }
+      const data = await response.json();
+      console.log("RESPOSTA API:", data);
 
-    const data = await response.json();
-    console.log("RESPOSTA API:", data);
+      const laudo = data.laudo;
 
-    const laudo = data.laudo;
+      if (!laudo) {
+        throw new Error("Laudo não retornado pela IA");
+      }
 
-    if (!laudo) {
-      throw new Error("Laudo não retornado pela IA");
-    }
+      setTranscriptionProgress("Gerando laudo médico...");
 
-    setTranscriptionProgress("Gerando laudo médico...");
-
-    const textoLaudo = `
+      // ⚠️ AQUI ESTÁ A MÁGICA 2: Pegando o laudo estruturado do RAG!
+      const textoLaudo = laudo.laudo_estruturado_completo || `
 HIPÓTESE DIAGNÓSTICA:
 ${laudo.diagnostico_hipotese}
 
@@ -995,28 +1005,27 @@ ${laudo.recomendacoes}
 CID SUGERIDO: ${laudo.cid_sugerido}
 `.trim();
 
-    setReportContent(prev =>
-      prev ? `${prev}\n\n${textoLaudo}` : textoLaudo
-    );
+      setReportContent(prev =>
+        prev ? `${prev}\n\n${textoLaudo}` : textoLaudo
+      );
 
-    setIsTranscribing(false);
-    setTranscriptionProgress("");
-    console.log("LAUDO INSERIDO COM SUCESSO");
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
+      console.log("LAUDO INSERIDO COM SUCESSO");
 
-  } catch (error) {
-    console.error("Erro ao gerar laudo:", error);
+    } catch (error) {
+      console.error("Erro ao gerar laudo:", error);
 
-    setIsTranscribing(false);
-    setTranscriptionProgress("");
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
 
-    setAudioError(
-      "❌ Erro ao gerar o laudo a partir do áudio. Verifique as APIs."
-    );
+      setAudioError(
+        "❌ Erro ao gerar o laudo a partir do áudio. Verifique as APIs."
+      );
 
-    setTimeout(() => setAudioError(""), 10000);
-  }
-};
-
+      setTimeout(() => setAudioError(""), 10000);
+    }
+  };
 
 
 
