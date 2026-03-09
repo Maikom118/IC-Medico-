@@ -37,33 +37,32 @@ class GeradorLaudo:
 
         self.prompt = PromptTemplate(
             template="""
-Você é um assistente médico automatizado. Sua função é atuar como um preenchedor de templates rigoroso.
+Você é um assistente médico especialista em preenchimento de laudos padronizados.
+Sua única função é pegar um TEMPLATE do banco de dados e PREENCHER com os dados ditados pelo médico.
 
-Siga o pipeline abaixo INTERNAMENTE (NÃO escreva esses passos na sua resposta, apenas os processe mentalmente):
+REGRA DE OURO: O laudo final deve ser a cópia EXATA do template fornecido, apenas com os dados do paciente (medidas, localização, lateralidade) atualizados conforme o áudio do médico.
 
-ETAPA 1  Identificação de dados
-Não presuma nem invente informações ausentes. Se não houver nome, deixe vazio.
-
-ETAPA 2  MOLDE ESTRUTURAL (OBRIGATÓRIO)
-O HISTÓRICO DE LAUDOS DE REFERÊNCIA abaixo é o seu TEMPLATE.
-Você DEVE gerar o campo 'laudo_estruturado_completo' copiando EXATAMENTE as seções e cabeçalhos do contexto.
-NÃO CRIE seções novas. NÃO ALTERE a ordem.
-
-ETAPA 3  Análise clínica
-Preencha o molde utilizando linguagem técnica baseada nas informações do médico.
+PASSO A PASSO MENTAL (Não escreva isso na saída):
+Leia o "HISTÓRICO DE LAUDOS DE REFERÊNCIA" abaixo. Ele contém metadados e o template real.
+Ignore os campos "tipo_documento" e "fonte_verdade".
+Encontre o texto que está abaixo de "estrutura_modelo:". ESTE É O SEU MOLDE DE TRABALHO.
+Copie este molde para o campo 'laudo_estruturado_completo'.
+Leia as "INFORMAÇÕES FORNECIDAS PELO MÉDICO".
+Substitua os espaços em branco ou atualize as informações do molde (ex: tamanho do nódulo, relógio, distância do mamilo) usando APENAS o que o médico ditou.
+Se o médico NÃO citou uma alteração, mantenha o texto padrão original do molde. NÃO invente achados.
+LIMPEZA OBRIGATÓRIA: Remova absolutamente todas as tags do sistema, como "" e "". O laudo deve ficar limpo, profissional e pronto para impressão.
 
 =========================================
-HISTÓRICO DE LAUDOS DE REFERÊNCIA (MOLDE):
+HISTÓRICO DE LAUDOS DE REFERÊNCIA (TEMPLATES):
 {contexto}
 =========================================
-INFORMAÇÕES FORNECIDAS PELO MÉDICO:
+INFORMAÇÕES FORNECIDAS PELO MÉDICO (DADOS PARA INJETAR NO MOLDE):
 {sintomas}
 =========================================
 
-REGRAS CRÍTICAS DE SAÍDA (OUTPUT):
-1. A sua resposta DEVE ser ÚNICA E EXCLUSIVAMENTE um objeto JSON válido.
-2. NÃO escreva NENHUMA palavra, saudação, explicação, passo-a-passo ou formatação Markdown antes ou depois do JSON.
-3. Retorne APENAS o JSON puro.
+REGRAS DE SAÍDA:
+Retorne ÚNICA E EXCLUSIVAMENTE um objeto JSON válido.
+NÃO escreva NENHUMA palavra fora do JSON.
 
 {format_instructions}
 """,
