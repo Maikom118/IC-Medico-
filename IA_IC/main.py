@@ -58,16 +58,19 @@ async def transcrever_e_gerar_laudo(
         texto_transcrito = "Simulação de transcrição médica" 
 
         # 2️⃣ CHAMA A API DE IA (Porta 8200) REPASSANDO O BASTÃO
-        ia_url = os.environ.get("IA_URL", "http://localhost:8200")
+        ia_url = os.environ.get("IA_URL", "http://localhost:8200").rstrip("/")
+        
+        # Se a ia_url já termina com /api/ia, use apenas /gerar-laudo
+        # Se a ia_url termina apenas no domínio/porta, use /api/ia/gerar-laudo
+        endpoint = "/gerar-laudo" if "/api/ia" in ia_url else "/api/ia/gerar-laudo"
         
         async with httpx.AsyncClient(timeout=120) as client:
-            print(f"🚀 Enviando para IA: {tipo_exame}")
-            
+            print(f"📡 Chamando IA em: {ia_url}{endpoint}")
             response = await client.post(
-                f"{ia_url}/api/ia/gerar-laudo",
+                f"{ia_url}{endpoint}",
                 json={
                     "sintomas": texto_transcrito,
-                    "tipo_exame": tipo_exame  # 👈 2. REPASSA O NOME DO EXAME PARA A IA
+                    "tipo_exame": tipo_exame
                 }
             )
 
