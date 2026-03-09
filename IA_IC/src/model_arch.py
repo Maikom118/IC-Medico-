@@ -1,5 +1,6 @@
 import os
 from typing import List
+import psycopg2
 from pydantic import BaseModel, Field
 
 from langchain_groq import ChatGroq
@@ -80,27 +81,52 @@ INFORMAÇÕES FORNECIDAS PELO MÉDICO:
 
         self.chain = self.prompt | self.llm | self.parser
 
-    def buscar_chunks_no_banco(self, sintomas: str) -> str:
+    def buscar_chunks_no_banco(self, tipo_exame: str) -> str:
         """
-        LÓGICA DO RAG:
-        Aqui você deve conectar no seu banco de dados, fazer a busca na 
-        tabela `laudo_chunks` (usando busca vetorial ou SQL normal) 
-        baseada nos 'sintomas' e retornar os textos encontrados.
+        Conecta no PostgreSQL e busca laudos onde a coluna 'text' 
+        contenha o tipo do exame especificado.
         """
-        
-        # EXEMPLO DE COMO DEVE SER (Pseudocódigo):
-        # 1. Gerar embedding da string 'sintomas'
-        # 2. Executar SQL: SELECT texto_chunk FROM laudo_chunks ORDER BY embedding <=> vetor_sintomas LIMIT 3
-        # 3. Concatenar os resultados em uma string
-        
-        # MOCKUP (Simulação) do que o banco retornaria:
-        chunks_simulados = """
-        Laudo Ref 1: Paciente apresentando quadro febril agudo, mialgia e astenia. Suspeita de quadro viral (CID J06.9). Conduta: repouso e hidratação.
-        Laudo Ref 2: Relato de tosse seca, prostração e febre não aferida há 2 dias. Sugerido hemograma completo e PCR.
-        """
-        
-        # Em produção, você substituirá o retorno abaixo pelos textos reais do seu banco.
-        return chunks_simulados.strip()
+        try:
+            # 1. Conecta ao banco de dados usando as variáveis do .env
+            conn = psycopg2.connect(
+                host=os.getenv("DB_HOST"),
+                database=os.getenv("DB_NAME"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASS")
+            )
+            cursor = conn.cursor()
+
+            # 2. Faz a busca SQL na coluna 'text'
+            # O ILIKE ignora maiúsculas/minúsculas.
+            query = """
+                SELECT text 
+                FROM laudo_chunks 
+                WHERE text ILIKE %s 
+                LIMIT 3;
+            """
+            
+            # Formata a string para o ILIKE (ex: '%transvaginal%')
+            termo_busca = f"%{tipo_exame}%"
+            cursor.execute(query, (termo_busca,))
+            
+            # Pega todos os resultados encontrados
+            resultados = cursor.fetchall()
+
+            # 3. Fecha a conexão
+            cursor.close()
+            conn.close()
+
+            # 4. Se não achar nada, retorna um aviso pro LLaMA saber
+            if not resultados:
+                return "Nenhum laudo de referência encontrado para este tipo de exame no banco de dados."
+
+            # 5. Formata os resultados (linha[0] acessa o conteúdo da coluna 'text')
+            chunks_formatados = "\n\n".join([f"Laudo Ref {i+1}:\n{linha[0]}" for i, linha in enumerate(resultados)])
+            return chunks_formatados
+
+        except Exception as e:
+            print(f"❌ ERRO AO CONECTAR NO POSTGRESQL: {e}")
+            return "Erro ao buscar contexto no banco de dados."
 
     def gerar(self, sintomas_paciente: str):
         # 1. O Python vai no banco (RAG) e pega a informação da tabela laudo_chunks
