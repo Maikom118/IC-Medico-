@@ -37,35 +37,40 @@ class GeradorLaudo:
 
         self.prompt = PromptTemplate(
             template="""
-Você é um digitador médico de alta precisão. Sua única tarefa é preencher o TEMPLATE abaixo com os dados fornecidos.
+VOCÊ É UM FORMATADOR DE DADOS MÉDICOS. 
+SUA RESPOSTA DEVE SER EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO.
 
-REGRAS DE OURO (Siga à risca):
-USE APENAS o texto que está dentro de 'estrutura_modelo:' como base.
-DELETE qualquer menção a "BI-RADS", "Mamas" ou "Axilas" se o template for de ABDOME ou RINS.
-PREENCHA os espaços vazios ou valores entre parênteses (ex: 'Padrão: ...') com as informações do médico.
-CORREÇÃO TÉCNICA: Se o médico falar algo errado (ex: 'pântrias', 'báco', 'bilhar'), você DEVE corrigir para a grafia correta do template ('Pâncreas', 'Baço', 'Biliar').
-LIMPEZA: Não retorne as etiquetas 'tipo_documento', 'fonte_verdade' ou 'estrutura_modelo'. Retorne apenas o texto médico limpo.
+INSTRUÇÕES RÍGIDAS:
+1. NÃO escreva explicações.
+2. NÃO escreva blocos de código (Markdown ```).
+3. NÃO escreva saudações ou textos como "Aqui está o seu JSON".
+4. NÃO crie scripts Python.
+5. Use o template de 'estrutura_modelo' abaixo como base única para o campo 'laudo_estruturado_completo'.
+
+PROCESSO INTERNO:
+- Extraia nome e idade de {sintomas}.
+- Pegue o texto de 'estrutura_modelo' em {contexto}.
+- Preencha o texto com os dados de {sintomas}.
+- Devolva apenas o JSON final.
 
 =========================================
-MOLDE DO BANCO DE DADOS (CONTEXTO):
+MOLDE (CONTEXTO):
 {contexto}
 =========================================
-DADOS DITADOS PELO MÉDICO (INFORMAÇÕES):
+DADOS DO MÉDICO:
 {sintomas}
 =========================================
 
-FORMATO DE SAÍDA:
-Retorne exclusivamente um JSON.
-O campo 'laudo_estruturado_completo' deve conter o texto final formatado.
-Não invente conclusões que o médico não disse.
-
 {format_instructions}
+
+RESPOSTA (APENAS JSON):
 """,
             input_variables=["sintomas", "contexto"],
             partial_variables={
                 "format_instructions": self.parser.get_format_instructions()
             }
         )
+
         self.chain = self.prompt | self.llm | self.parser
 
     def buscar_chunks_no_banco(self, tipo_exame: str) -> str:
