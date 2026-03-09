@@ -75,7 +75,6 @@ NÃO escreva NENHUMA palavra fora do JSON.
         self.chain = self.prompt | self.llm | self.parser
 
     def buscar_chunks_no_banco(self, tipo_exame: str) -> str:
-        # 👇 ADICIONE ESTE PRINT AQUI PARA VERMOS O QUE ESTÁ CHEGANDO DO REACT
         print(f"\n🔎 [RAG] O React mandou buscar no banco por: '{tipo_exame}'") 
 
         try:
@@ -87,6 +86,14 @@ NÃO escreva NENHUMA palavra fora do JSON.
             )
             cursor = conn.cursor()
 
+            # ⚠️ A MÁGICA ESTÁ AQUI: 
+            # Em vez de buscar a frase gigante, pegamos apenas a primeira palavra 
+            # (Ex: De "Microlitíase Renal (Abdome)" ele vai buscar só "%Microlitíase%")
+            palavras = tipo_exame.replace("(", "").replace(")", "").split()
+            palavra_chave = palavras[0] if palavras else "Geral"
+
+            print(f"🎯 [RAG] Filtro flexível! Buscando no banco pela palavra: '{palavra_chave}'")
+
             query = """
                 SELECT text 
                 FROM laudo_chunks 
@@ -94,18 +101,16 @@ NÃO escreva NENHUMA palavra fora do JSON.
                 LIMIT 3;
             """
 
-            termo_busca = f"%{tipo_exame}%"
+            termo_busca = f"%{palavra_chave}%"
             cursor.execute(query, (termo_busca,))
             resultados = cursor.fetchall()
 
-#👇 ADICIONE ESTE PRINT PARA VER SE O BANCO ACHOU ALGO
             print(f"✅ [RAG] O PostgreSQL encontrou {len(resultados)} templates!")
 
             cursor.close()
             conn.close()
 
             if not resultados:
-                # 👇 ADICIONE ESTE PRINT PARA SABERMOS SE DEU VAZIO
                 print("⚠️ [RAG] Nenhum template encontrado. A IA vai ficar sem molde.")
                 return "Nenhum laudo de referência encontrado para este tipo de exame no banco de dados."
 
@@ -115,7 +120,7 @@ NÃO escreva NENHUMA palavra fora do JSON.
         except Exception as e:
             print(f"❌ ERRO AO CONECTAR NO POSTGRESQL: {e}")
             return "Erro ao buscar contexto no banco de dados."
-
+        
     def gerar(self, sintomas_paciente: str, tipo_exame: str):
         # 1. O Python vai no banco (PostgreSQL) e puxa os laudos baseados no tipo do exame
         contexto_recuperado = self.buscar_chunks_no_banco(tipo_exame)
