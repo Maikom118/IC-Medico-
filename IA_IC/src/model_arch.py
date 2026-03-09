@@ -75,12 +75,10 @@ NÃO escreva NENHUMA palavra fora do JSON.
         self.chain = self.prompt | self.llm | self.parser
 
     def buscar_chunks_no_banco(self, tipo_exame: str) -> str:
-        """
-        Conecta no PostgreSQL e busca laudos onde a coluna 'text' 
-        contenha o tipo do exame especificado.
-        """
+        # 👇 ADICIONE ESTE PRINT AQUI PARA VERMOS O QUE ESTÁ CHEGANDO DO REACT
+        print(f"\n🔎 [RAG] O React mandou buscar no banco por: '{tipo_exame}'") 
+
         try:
-            # Conecta ao banco de dados usando as variáveis do .env
             conn = psycopg2.connect(
                 host=os.getenv("DB_HOST"),
                 database=os.getenv("DB_NAME"),
@@ -89,30 +87,28 @@ NÃO escreva NENHUMA palavra fora do JSON.
             )
             cursor = conn.cursor()
 
-            # Faz a busca SQL na coluna 'text' ignorando maiúsculas/minúsculas
             query = """
                 SELECT text 
                 FROM laudo_chunks 
                 WHERE text ILIKE %s 
                 LIMIT 3;
             """
-            
-            # Formata a string para o ILIKE (ex: '%transvaginal%')
+
             termo_busca = f"%{tipo_exame}%"
             cursor.execute(query, (termo_busca,))
-            
-            # Pega todos os resultados encontrados
             resultados = cursor.fetchall()
 
-            # Fecha a conexão
+#👇 ADICIONE ESTE PRINT PARA VER SE O BANCO ACHOU ALGO
+            print(f"✅ [RAG] O PostgreSQL encontrou {len(resultados)} templates!")
+
             cursor.close()
             conn.close()
 
-            # Se não achar nada, retorna um aviso pro LLaMA saber
             if not resultados:
+                # 👇 ADICIONE ESTE PRINT PARA SABERMOS SE DEU VAZIO
+                print("⚠️ [RAG] Nenhum template encontrado. A IA vai ficar sem molde.")
                 return "Nenhum laudo de referência encontrado para este tipo de exame no banco de dados."
 
-            # Formata os resultados (linha[0] acessa o conteúdo da coluna 'text')
             chunks_formatados = "\n\n".join([f"Laudo Ref {i+1}:\n{linha[0]}" for i, linha in enumerate(resultados)])
             return chunks_formatados
 
