@@ -13,11 +13,11 @@ const STATUS_LABELS: Record<ReportStatus, string> = {
   'reviewed': 'Revisado',
 };
 
-const STATUS_OPTIONS: { value: ReportStatus; label: string; hoverBg: string; textColor: string; dotColor: string }[] = [
-  { value: 'pending',     label: 'Pendente',     hoverBg: 'hover:bg-yellow-50',  textColor: 'text-yellow-600', dotColor: 'bg-yellow-400' },
-  { value: 'in-progress', label: 'Em Andamento', hoverBg: 'hover:bg-blue-50',    textColor: 'text-blue-600',   dotColor: 'bg-blue-400'   },
-  { value: 'completed',   label: 'Concluído',    hoverBg: 'hover:bg-green-50',   textColor: 'text-green-600',  dotColor: 'bg-green-400'  },
-  { value: 'reviewed',    label: 'Revisado',     hoverBg: 'hover:bg-purple-50',  textColor: 'text-purple-600', dotColor: 'bg-purple-400' },
+const STATUS_OPTIONS: { value: ReportStatus; label: string; icon: string; hoverBg: string }[] = [
+  { value: 'pending',     label: 'Pendente',     icon: '⏳', hoverBg: 'hover:bg-yellow-50' },
+  { value: 'in-progress', label: 'Em Andamento', icon: '✏️', hoverBg: 'hover:bg-blue-50'   },
+  { value: 'completed',   label: 'Concluído',    icon: '✓',  hoverBg: 'hover:bg-green-50'  },
+  { value: 'reviewed',    label: 'Revisado',     icon: '✓✓', hoverBg: 'hover:bg-purple-50' },
 ];
 
 export function Dashboard() {
@@ -200,34 +200,23 @@ export function Dashboard() {
         const currentStatus = laudos.find(l => String(l.id) === openDropdownId)?.status;
         return (
           <div
-            className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-2xl py-2 w-52 overflow-hidden"
+            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-44"
             style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
-            <p className="px-4 pt-1 pb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
-              Alterar status
-            </p>
-            <div className="border-t border-gray-100 mb-1" />
-            {STATUS_OPTIONS.map(opt => {
-              const isCurrent = currentStatus === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    const laudo = laudos.find(l => String(l.id) === openDropdownId);
-                    if (laudo) updateReportStatus(laudo.id, opt.value);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
-                    isCurrent ? opt.hoverBg + ' font-medium' : opt.hoverBg
-                  }`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${opt.dotColor}`} />
-                  <span className={isCurrent ? opt.textColor : 'text-gray-700'}>{opt.label}</span>
-                  {isCurrent && (
-                    <span className={`ml-auto text-xs font-bold ${opt.textColor}`}>✓</span>
-                  )}
-                </button>
-              );
-            })}
+            {STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  const laudo = laudos.find(l => String(l.id) === openDropdownId);
+                  if (laudo) updateReportStatus(laudo.id, opt.value);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm text-gray-700 ${opt.hoverBg} transition-colors flex items-center gap-2${
+                  currentStatus === opt.value ? ' font-semibold' : ''
+                }`}
+              >
+                <span>{opt.icon}</span> {opt.label}
+              </button>
+            ))}
           </div>
         );
       })()}
