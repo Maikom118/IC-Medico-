@@ -1,5 +1,5 @@
 import { Users, FileText, Clock, TrendingUp } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listarTodosLaudos, atualizarStatusLaudo, LaudoDashboard } from '../../api/laudoservices';
 import { listarPacientes } from '../../api/pacienteservices';
@@ -13,6 +13,13 @@ const STATUS_LABELS: Record<ReportStatus, string> = {
   'reviewed': 'Revisado',
 };
 
+const STATUS_OPTIONS: { value: ReportStatus; label: string; hoverBg: string; textColor: string; dotColor: string }[] = [
+  { value: 'pending',     label: 'Pendente',     hoverBg: 'hover:bg-yellow-50',  textColor: 'text-yellow-600', dotColor: 'bg-yellow-400' },
+  { value: 'in-progress', label: 'Em Andamento', hoverBg: 'hover:bg-blue-50',    textColor: 'text-blue-600',   dotColor: 'bg-blue-400'   },
+  { value: 'completed',   label: 'Concluído',    hoverBg: 'hover:bg-green-50',   textColor: 'text-green-600',  dotColor: 'bg-green-400'  },
+  { value: 'reviewed',    label: 'Revisado',     hoverBg: 'hover:bg-purple-50',  textColor: 'text-purple-600', dotColor: 'bg-purple-400' },
+];
+
 export function Dashboard() {
   const navigate = useNavigate();
 
@@ -20,7 +27,7 @@ export function Dashboard() {
   const [totalPacientes, setTotalPacientes] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -38,17 +45,6 @@ export function Dashboard() {
       }
     }
     fetchData();
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdownId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -75,8 +71,23 @@ export function Dashboard() {
     setOpenDropdownId(null);
   };
 
-  const toggleDropdown = (laudoId: string) => {
-    setOpenDropdownId(openDropdownId === laudoId ? null : laudoId);
+  const toggleDropdown = (laudoId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (openDropdownId === laudoId) {
+      setOpenDropdownId(null);
+      setDropdownPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const dropdownHeight = 196;
+    const dropdownWidth = 210;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+    const left = Math.min(rect.left, window.innerWidth - dropdownWidth - 8);
+    setDropdownPos({
+      top: openUp ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+      left,
+    });
+    setOpenDropdownId(laudoId);
   };
 
   // Compute stats from real data
@@ -161,43 +172,12 @@ export function Dashboard() {
                       {new Date(laudo.criado_em).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="relative" ref={openDropdownId === String(laudo.id) ? dropdownRef : null}>
-                        <button
-                          onClick={() => toggleDropdown(String(laudo.id))}
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(laudo.status)} cursor-pointer hover:opacity-80 transition-opacity`}
-                        >
-                          {getStatusLabel(laudo.status)} ▾
-                        </button>
-
-                        {openDropdownId === String(laudo.id) && (
-                          <div className="absolute left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[140px]">
-                            <button
-                              onClick={() => updateReportStatus(laudo.id, 'pending')}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 transition-colors flex items-center gap-2"
-                            >
-                              <span>⏳</span> Pendente
-                            </button>
-                            <button
-                              onClick={() => updateReportStatus(laudo.id, 'in-progress')}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-2"
-                            >
-                              <span>✏️</span> Em Andamento
-                            </button>
-                            <button
-                              onClick={() => updateReportStatus(laudo.id, 'completed')}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors flex items-center gap-2"
-                            >
-                              <span>✓</span> Concluído
-                            </button>
-                            <button
-                              onClick={() => updateReportStatus(laudo.id, 'reviewed')}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 transition-colors flex items-center gap-2"
-                            >
-                              <span>✓✓</span> Revisado
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        onClick={(e) => toggleDropdown(String(laudo.id), e)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(laudo.status)} cursor-pointer hover:opacity-80 transition-opacity select-none`}
+                      >
+                        {getStatusLabel(laudo.status)} ▾
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -206,6 +186,51 @@ export function Dashboard() {
           </table>
         </div>
       </div>
+
+      {/* Overlay — fecha o dropdown ao clicar fora */}
+      {openDropdownId && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => { setOpenDropdownId(null); setDropdownPos(null); }}
+        />
+      )}
+
+      {/* Dropdown de status fixo no viewport */}
+      {openDropdownId && dropdownPos && (() => {
+        const currentStatus = laudos.find(l => String(l.id) === openDropdownId)?.status;
+        return (
+          <div
+            className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-2xl py-2 w-52 overflow-hidden"
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          >
+            <p className="px-4 pt-1 pb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+              Alterar status
+            </p>
+            <div className="border-t border-gray-100 mb-1" />
+            {STATUS_OPTIONS.map(opt => {
+              const isCurrent = currentStatus === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    const laudo = laudos.find(l => String(l.id) === openDropdownId);
+                    if (laudo) updateReportStatus(laudo.id, opt.value);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
+                    isCurrent ? opt.hoverBg + ' font-medium' : opt.hoverBg
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${opt.dotColor}`} />
+                  <span className={isCurrent ? opt.textColor : 'text-gray-700'}>{opt.label}</span>
+                  {isCurrent && (
+                    <span className={`ml-auto text-xs font-bold ${opt.textColor}`}>✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }
