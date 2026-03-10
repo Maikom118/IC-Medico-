@@ -4,7 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { listarTodosLaudos, atualizarStatusLaudo, LaudoDashboard } from '../../api/laudoservices';
 import { listarPacientes } from '../../api/pacienteservices';
 
-type ReportStatus = 'Pendente' | 'Em Andamento' | 'Concluído' | 'Revisado';
+type ReportStatus = 'pending' | 'in-progress' | 'completed' | 'reviewed';
+
+const STATUS_LABELS: Record<ReportStatus, string> = {
+  'pending': 'Pendente',
+  'in-progress': 'Em Andamento',
+  'completed': 'Concluído',
+  'reviewed': 'Revisado',
+};
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -46,12 +53,16 @@ export function Dashboard() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'Pendente': 'bg-yellow-100 text-yellow-700',
-      'Em Andamento': 'bg-blue-100 text-blue-700',
-      'Concluído': 'bg-green-100 text-green-700',
-      'Revisado': 'bg-purple-100 text-purple-700',
+      'pending': 'bg-yellow-100 text-yellow-700',
+      'in-progress': 'bg-blue-100 text-blue-700',
+      'completed': 'bg-green-100 text-green-700',
+      'reviewed': 'bg-purple-100 text-purple-700',
     };
     return colors[status] ?? 'bg-gray-100 text-gray-700';
+  };
+
+  const getStatusLabel = (status: string): string => {
+    return STATUS_LABELS[status as ReportStatus] ?? status;
   };
 
   const updateReportStatus = async (laudoId: number, newStatus: ReportStatus) => {
@@ -70,8 +81,8 @@ export function Dashboard() {
 
   // Compute stats from real data
   const totalLaudos = laudos.length;
-  const pendentes = laudos.filter(l => l.status === 'Pendente').length;
-  const concluidos = laudos.filter(l => l.status === 'Concluído' || l.status === 'Revisado').length;
+  const pendentes = laudos.filter(l => l.status === 'pending').length;
+  const concluidos = laudos.filter(l => l.status === 'completed' || l.status === 'reviewed').length;
   const taxaConclusao = totalLaudos > 0 ? Math.round((concluidos / totalLaudos) * 100) : 0;
 
   const recentLaudos = laudos.slice(0, 10);
@@ -155,31 +166,31 @@ export function Dashboard() {
                           onClick={() => toggleDropdown(String(laudo.id))}
                           className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(laudo.status)} cursor-pointer hover:opacity-80 transition-opacity`}
                         >
-                          {laudo.status} ▾
+                          {getStatusLabel(laudo.status)} ▾
                         </button>
 
                         {openDropdownId === String(laudo.id) && (
                           <div className="absolute left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[140px]">
                             <button
-                              onClick={() => updateReportStatus(laudo.id, 'Pendente')}
+                              onClick={() => updateReportStatus(laudo.id, 'pending')}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 transition-colors flex items-center gap-2"
                             >
                               <span>⏳</span> Pendente
                             </button>
                             <button
-                              onClick={() => updateReportStatus(laudo.id, 'Em Andamento')}
+                              onClick={() => updateReportStatus(laudo.id, 'in-progress')}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-2"
                             >
                               <span>✏️</span> Em Andamento
                             </button>
                             <button
-                              onClick={() => updateReportStatus(laudo.id, 'Concluído')}
+                              onClick={() => updateReportStatus(laudo.id, 'completed')}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors flex items-center gap-2"
                             >
                               <span>✓</span> Concluído
                             </button>
                             <button
-                              onClick={() => updateReportStatus(laudo.id, 'Revisado')}
+                              onClick={() => updateReportStatus(laudo.id, 'reviewed')}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 transition-colors flex items-center gap-2"
                             >
                               <span>✓✓</span> Revisado
