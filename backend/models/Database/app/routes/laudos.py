@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Response, status, UploadFile, File
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.database import SessionLocal
 from app.models import LaudoBase, TipoConteudoLaudo, TipoLaudo
-from app.models import LaudoPaciente
+from app.models import LaudoPaciente, Paciente
 from app.schemas import LaudoResponse, TipoLaudoCreate
 from app.schemas import LaudoPacienteCreate, LaudoPacienteResponse
 import os
@@ -165,6 +166,55 @@ def obter_laudo_paciente(paciente_id: int, db: Session = Depends(get_db)):
     )
 
     return laudo  # ← pode ser None, e tá tudo bem
+
+
+class StatusUpdate(BaseModel):
+    status: str
+
+
+# 🔹 READ – Todos os Laudos (dashboard)
+@router.get("/todos")
+def listar_todos_laudos(db: Session = Depends(get_db)):
+    laudos = (
+        db.query(LaudoPaciente)
+        .order_by(LaudoPaciente.criado_em.desc())
+        .all()
+    )
+
+    resultado = []
+    for laudo in laudos:
+        paciente = db.query(Paciente).filter(Paciente.id == laudo.paciente_id).first()
+        tipo_laudo = db.query(TipoLaudo).filter(TipoLaudo.id == laudo.tipo_laudo_id).first()
+        resultado.append({
+            "id": laudo.id,
+            "paciente_id": laudo.paciente_id,
+            "paciente_nome": paciente.nome if paciente else None,
+            "tipo_laudo_id": laudo.tipo_laudo_id,
+            "tipo_laudo_nome": tipo_laudo.nome if tipo_laudo else None,
+            "status": laudo.status,
+            "criado_em": laudo.criado_em,
+        })
+
+    return resultado
+
+
+# 🔹 PATCH – Atualizar apenas o status do Laudo do Paciente
+@router.patch("/paciente/{laudo_id}/status")
+def atualizar_status_laudo(
+    laudo_id: int,
+    data: StatusUpdate,
+    db: Session = Depends(get_db)
+):
+    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
+
+    if not laudo:
+        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+
+    laudo.status = data.status
+    db.commit()
+    db.refresh(laudo)
+
+    return {"id": laudo.id, "status": laudo.status}
 
 
 # 🔹 READ – Laudo por ID
