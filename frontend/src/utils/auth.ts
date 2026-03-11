@@ -4,6 +4,7 @@ export type AuthUser = {
   email: string;
   name: string;
   role: UserRole;
+  token: string;
 };
 
 const AUTH_USER_KEY = 'auth_user';
@@ -26,4 +27,11 @@ export function setAuthUser(user: AuthUser) {
 
 export function clearAuthUser() {
   localStorage.removeItem(AUTH_USER_KEY);
+}
+
+/** Retorna o header Authorization para uso em chamadas API autenticadas */
+export function getAuthHeaders(): Record<string, string> {
+  const user = getAuthUser();
+  if (!user?.token) return {};
+  return { Authorization: `Bearer ${user.token}` };
 }

@@ -9,6 +9,7 @@ from app.routes.pacientes import router as pacientes_router
 from app.routes.laudos import router as laudos_router
 from app.routes.audios import router as audios_router
 from app.routes.exames import router as exames_router
+from app.routes.auth import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -43,6 +44,7 @@ app.include_router(pacientes_router, prefix="/api")
 app.include_router(laudos_router, prefix="/api")
 app.include_router(audios_router, prefix="/api")
 app.include_router(exames_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 

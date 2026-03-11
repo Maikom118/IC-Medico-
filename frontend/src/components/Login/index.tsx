@@ -13,67 +13,60 @@ import {
 } from "lucide-react";
 import "./index.css";
 import { setAuthUser } from "../../utils/auth";
-
-const USERS = {
-  medico: {
-    email: "medico@email.com",
-    password: "12345",
-    name: "Dr. João Silva",
-    role: "medico" as const,
-  },
-  secretaria: {
-    email: "secretaria@email.com",
-    password: "12345",
-    name: "Secretaria",
-    role: "secretaria" as const,
-  },
-};
+import { API_CONFIG } from "../../config/api.config";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+    setError(null);
 
     if (!email || !password) {
-      alert("Preencha todos os campos.");
+      setError("Preencha todos os campos.");
       return;
     }
 
-    const user = Object.values(USERS).find(
-      (candidate) =>
-        candidate.email.toLowerCase() === email.toLowerCase() &&
-        candidate.password === password
-    );
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_CONFIG.BACKEND_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, senha: password }),
+      });
 
-    if (!user) {
-      alert("Credenciais inválidas");
-      return;
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.detail ?? "Email ou senha inválidos.");
+        return;
+      }
+
+      const data = await response.json();
+
+      setAuthUser({
+        email: data.email,
+        name: data.nome,
+        role: data.role,
+        token: data.access_token,
+      });
+
+      if (data.role === "secretaria") {
+        navigate("/registration");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch {
+      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-
-    setAuthUser({
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
-
-    if (user.role === "secretaria") {
-      navigate("/registration");
-      return;
-    }
-
-    navigate("/dashboard");
-
-    console.log({
-      email,
-      rememberMe,
-      role: user.role,
-    });
   };
 
   return (
@@ -214,10 +207,17 @@ const Login = () => {
               </label>
             </div>
 
+            {/* Mensagem de erro */}
+            {error && (
+              <p style={{ color: "#ef4444", fontSize: "0.875rem", margin: "0" }}>
+                {error}
+              </p>
+            )}
+
             {/* Botão */}
-            <button type="submit" className="login-btn">
-              <span>Entrar</span>
-              <ArrowRight className="btn-icon" />
+            <button type="submit" className="login-btn" disabled={loading}>
+              <span>{loading ? "Entrando..." : "Entrar"}</span>
+              {!loading && <ArrowRight className="btn-icon" />}
             </button>
 
             {/* Cadastro */}
