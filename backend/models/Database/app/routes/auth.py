@@ -51,6 +51,20 @@ class LoginResponse(BaseModel):
     email: str
 
 
+class RegisterRequest(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+    role: str  # "medico" ou "secretaria"
+
+
+class RegisterResponse(BaseModel):
+    id: int
+    nome: str
+    email: str
+    role: str
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -119,3 +133,45 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Email ou senha inválidos",
     )
+
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Cria um novo médico ou secretária.
+    Role aceita: 'medico' ou 'secretaria'.
+    """
+
+    if body.role not in ("medico", "secretaria"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Role inválida. Use 'medico' ou 'secretaria'.",
+        )
+
+    # Verifica email duplicado em ambas as tabelas
+    email_em_uso = (
+        db.query(Medico).filter(Medico.email == body.email).first()
+        or db.query(Secretaria).filter(Secretaria.email == body.email).first()
+    )
+    if email_em_uso:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email já cadastrado.",
+        )
+
+    senha_hash = pwd_context.hash(body.senha)
+
+    if body.role == "medico":
+        novo = Medico(nome=body.nome, email=body.email, senha_hash=senha_hash)
+        db.add(novo)
+        db.flush()   # popula novo.id antes do commit, sem SELECT extra
+        novo_id = novo.id
+        db.commit()
+        return RegisterResponse(id=novo_id, nome=body.nome, email=body.email, role="medico")
+
+    novo = Secretaria(nome=body.nome, email=body.email, senha_hash=senha_hash)
+    db.add(novo)
+    db.flush()
+    novo_id = novo.id
+    db.commit()
+    return RegisterResponse(id=novo_id, nome=body.nome, email=body.email, role="secretaria")
