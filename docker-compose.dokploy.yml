@@ -145,7 +145,7 @@ services:
     networks:
       - ic-medico-network
       - dokploy-network
-      - postgres-network
+      - iamedbr-bancopostgre-g0bax6_postgres-network
     depends_on:
       - ocr
     healthcheck:
@@ -191,7 +191,7 @@ networks:
         - subnet: 172.25.0.0/16
   dokploy-network:
     external: true
-  postgres-network:
+  iamedbr-bancopostgre-g0bax6_postgres-network:
     external: true
 
 volumes:
