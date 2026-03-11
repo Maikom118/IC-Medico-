@@ -137,6 +137,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - OCR_SERVICE_URL=http://ocr:8000
+      - SECRET_KEY=${SECRET_KEY}
     volumes:
       - backend_uploads:/app/uploads
     ports:
@@ -144,6 +145,7 @@ services:
     networks:
       - ic-medico-network
       - dokploy-network
+      - postgres-network
     depends_on:
       - ocr
     healthcheck:
@@ -188,6 +190,8 @@ networks:
       config:
         - subnet: 172.25.0.0/16
   dokploy-network:
+    external: true
+  postgres-network:
     external: true
 
 volumes:
