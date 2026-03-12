@@ -1,0 +1,35 @@
+.nav-menu-sidebar {
+ border-radius: .5rem;
+  white-space: nowrap;
+}
+
+.nav-menu-sidebar:hover {
+ border-radius: .5rem;
+}
+
+#navigation {
+ position: relative;
+}
+
+.button-toggle-sidebar {
+ top: 2rem;
+ right: -1rem;
+ border-radius: 1rem;
+ border: 1px solid #155efc60;
+ cursor: pointer;
+}
+
+
+/* Css de animação sidebar */
+.toogle-menu-open {
+ transition: all .5s;
+  transform: rotate(180deg);
+}
+
+.toogle-menu-close {
+ transition: all .5s;
+}
+
+.width-side-bar{
+ width: 5.7rem;
+}

@@ -1,14 +1,6 @@
 import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import {
-  Menu,
-  Users,
-  FileText,
-  MessageSquare,
-  LogOut,
-  FileStack,
-  UserPlus,
-} from "lucide-react";
+import { Outlet } from "react-router-dom";
+import SideBar from "../Sidebar/index";
 
 /*
   DashboardLayout
@@ -24,7 +16,7 @@ import {
 */
 
 export default function DashboardLayout() {
-  const navigate = useNavigate();
+
 
   // Controla se a sidebar está aberta ou fechada
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -35,68 +27,7 @@ export default function DashboardLayout() {
       {/* =========================
           SIDEBAR
          ========================= */}
-      <aside
-        className={`${isSidebarOpen ? "w-64" : "w-0"}
-        bg-blue-600 text-white transition-all duration-300 overflow-hidden relative`}
-      >
-        <div className="p-6">
-          {/* Título do sistema */}
-          <h1 className="text-2xl font-bold mb-8">
-            MediPlataforma
-          </h1>
-
-          {/* Navegação principal */}
-          <nav className="space-y-2">
-
-            {/* Cada botão navega para uma rota específica */}
-            <NavButton
-              icon={<Menu size={20} />}
-              text="Dashboard"
-              onClick={() => navigate("/dashboard")}
-            />
-
-            <NavButton
-              icon={<UserPlus size={20} />}
-              text="Cadastro"
-              onClick={() => navigate("/registration")}
-            />
-
-            <NavButton
-              icon={<Users size={20} />}
-              text="Pacientes"
-              onClick={() => navigate("/patients")}
-            />
-
-            <NavButton
-              icon={<FileText size={20} />}
-              text="Laudos"
-              onClick={() => navigate("/reports")}
-            />
-
-            <NavButton
-              icon={<FileStack size={20} />}
-              text="Modelos"
-              onClick={() => navigate("/templates")}
-            />
-
-            <NavButton
-              icon={<MessageSquare size={20} />}
-              text="IA Assistente"
-              onClick={() => navigate("/chat")}
-            />
-
-          </nav>
-        </div>
-
-        {/* Botão fixado na parte inferior da sidebar */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500">
-            <LogOut size={20} />
-            <span>Sair</span>
-          </button>
-        </div>
-      </aside>
-
+      <SideBar/>
       {/* =========================
           CONTEÚDO PRINCIPAL
          ========================= */}
@@ -106,12 +37,7 @@ export default function DashboardLayout() {
             HEADER
            ========================= */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Menu size={24} />
-          </button>
+
 
           <div className="flex items-center gap-4">
             <div className="text-right">
