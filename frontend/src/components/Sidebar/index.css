@@ -1,35 +1,99 @@
+/* ===== GLOBAL NAV ===== */
+#navigation {
+  position: relative;
+}
+
 .nav-menu-sidebar {
- border-radius: .5rem;
+  border-radius: 0.5rem;
   white-space: nowrap;
+  transition: all 0.3s;
 }
 
 .nav-menu-sidebar:hover {
- border-radius: .5rem;
+  border-radius: 0.5rem;
 }
 
-#navigation {
- position: relative;
-}
-
+/* ===== BOTÃO TOGGLE ===== */
 .button-toggle-sidebar {
- top: 2rem;
- right: -1rem;
- border-radius: 1rem;
- border: 1px solid #155efc60;
- cursor: pointer;
+  top: 2rem;
+  right: -1rem;
+  border-radius: 1rem;
+  border: 1px solid #155efc60;
+  cursor: pointer;
 }
 
-
-/* Css de animação sidebar */
+/* ANIMAÇÃO BOTÃO */
 .toogle-menu-open {
- transition: all .5s;
+  transition: all 0.5s;
   transform: rotate(180deg);
 }
 
 .toogle-menu-close {
- transition: all .5s;
+  transition: all 0.5s;
 }
 
-.width-side-bar{
- width: 5.7rem;
+/* LARGURA SIDEBAR */
+.width-side-bar {
+  width: 5.7rem;
+}
+
+.w-64 {
+  width: 16rem;
+}
+
+/* OPACIDADE */
+.opacity {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.opacity-1 {
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+/* PADDING SIDEBAR */
+.padding {
+  padding: 1.5rem 1.5rem;
+}
+
+.padding-off {
+  padding: 1.5rem 1.5rem;
+}
+
+/* HIDDEN MOBILE / DESKTOP */
+.hidden-mobile {
+  display: block;
+}
+
+.hidden-desktop {
+  display: none;
+}
+
+/* ===== MOBILE ===== */
+@media screen and (max-width: 991px) {
+  .width-side-bar {
+    width: 0rem;
+  }
+
+  #navigation {
+    position: fixed;
+    z-index: 99999;
+  }
+
+  .opacity {
+    opacity: 1;
+  }
+
+  .hidden-mobile {
+    display: none;
+  }
+
+  .hidden-desktop {
+    display: block;
+  }
+
+  .padding-off {
+    padding: 1.5rem 0rem;
+  }
 }

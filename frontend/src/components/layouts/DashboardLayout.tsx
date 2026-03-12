@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import SideBar from "../Sidebar/index";
+import { Menu } from "lucide-react";
 
 /*
   DashboardLayout
@@ -16,10 +17,12 @@ import SideBar from "../Sidebar/index";
 */
 
 export default function DashboardLayout() {
-
-
   // Controla se a sidebar está aberta ou fechada
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const showSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  }
+
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -27,7 +30,7 @@ export default function DashboardLayout() {
       {/* =========================
           SIDEBAR
          ========================= */}
-      <SideBar/>
+      <SideBar info={isSidebarOpen} />
       {/* =========================
           CONTEÚDO PRINCIPAL
          ========================= */}
@@ -37,8 +40,6 @@ export default function DashboardLayout() {
             HEADER
            ========================= */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-
-
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm font-medium">
@@ -52,6 +53,13 @@ export default function DashboardLayout() {
               JS
             </div>
           </div>
+
+          <button
+            onClick={() => showSidebar()}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Menu size={24} />
+          </button>
         </header>
 
         {/* =========================
