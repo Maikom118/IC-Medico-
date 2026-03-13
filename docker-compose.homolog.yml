@@ -35,7 +35,7 @@ services:
       start_period: 90s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-homol-ocr.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
+      - "traefik.http.routers.iamed-homol-ocr.rule=Host(`homol.iamedbr.com`) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
       - "traefik.http.routers.iamed-homol-ocr.entrypoints=websecure"
       - "traefik.http.routers.iamed-homol-ocr.tls=true"
       - "traefik.http.routers.iamed-homol-ocr.priority=200"
@@ -70,7 +70,7 @@ services:
       start_period: 45s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-homol-transcricao.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+      - "traefik.http.routers.iamed-homol-transcricao.rule=Host(`homol.iamedbr.com`) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
       - "traefik.http.routers.iamed-homol-transcricao.entrypoints=websecure"
       - "traefik.http.routers.iamed-homol-transcricao.tls=true"
       - "traefik.http.routers.iamed-homol-transcricao.priority=190"
@@ -112,7 +112,7 @@ services:
       start_period: 45s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-homol-ia.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && PathPrefix(`/ia`)"
+      - "traefik.http.routers.iamed-homol-ia.rule=Host(`homol.iamedbr.com`) && PathPrefix(`/ia`)"
       - "traefik.http.routers.iamed-homol-ia.entrypoints=websecure"
       - "traefik.http.routers.iamed-homol-ia.tls=true"
       - "traefik.http.routers.iamed-homol-ia.priority=180"
@@ -176,7 +176,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-homol-frontend.rule=Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)"
+      - "traefik.http.routers.iamed-homol-frontend.rule=Host(`homol.iamedbr.com`)"
       - "traefik.http.routers.iamed-homol-frontend.entrypoints=websecure"
       - "traefik.http.routers.iamed-homol-frontend.tls=true"
       - "traefik.http.routers.iamed-homol-frontend.priority=100"
