@@ -357,6 +357,11 @@ const carregarLaudo = async (laudoId: number) => {
 
 //Salvar Tudo (Laudo, Audio, Exames)
 const handleSalvarTudo = async () => {
+  // Guard: se não há tipo nem conteúdo, não há nada para salvar (evita salvas espúrias)
+  if (!selectedTipoLaudoId && !reportContent?.trim()) {
+    console.log("ℹ️ Nenhum conteúdo para salvar, abortando silenciosamente");
+    return;
+  }
   console.log("🚀 Iniciando salvar tudo");
 
   // 1️⃣ Salvar laudo
@@ -1074,15 +1079,14 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   const handleCreateNewReport = () => {
     console.log('🔵 handleCreateNewReport chamado');
 
-    // Verificar se há conteúdo não salvo
+    // Verificar se há conteúdo local não salvo
+    // Nota: `exames` e `audios` já estão persistidos no banco — não contam como não salvos
     const temConteudo = !!(
       reportContent ||
       reportType ||
       previews.length > 0 ||
       audioPreviews.length > 0 ||
-      audioRecordings.length > 0 ||
-      audios.length > 0 ||
-      exames.length > 0
+      audioRecordings.length > 0
     );
 
     console.log('Tem conteúdo não salvo?', temConteudo);
