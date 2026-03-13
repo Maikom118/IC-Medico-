@@ -99,6 +99,7 @@ const [audioFiles, setAudioFiles] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+    const isClearingRef = useRef(false);
   const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
 const [recordedAudioDuration, setRecordedAudioDuration] = useState<number>(0);
   
@@ -358,8 +359,12 @@ const carregarLaudo = async (laudoId: number) => {
 //Salvar Tudo (Laudo, Audio, Exames)
 const handleSalvarTudo = async () => {
   // Guard: se não há tipo nem conteúdo, não há nada para salvar (evita salvas espúrias)
-  if (!selectedTipoLaudoId && !reportContent?.trim()) {
-    console.log("ℹ️ Nenhum conteúdo para salvar, abortando silenciosamente");
+  if (isClearingRef.current) {
+    console.log("ℹ️ Formulário recém-limpo, ignorando salvar espúrio");
+    return;
+  }
+  if (!selectedTipoLaudoId || !reportContent?.trim()) {
+    console.log("ℹ️ Campos obrigatórios ausentes, abortando silenciosamente");
     return;
   }
   console.log("🚀 Iniciando salvar tudo");
@@ -1043,6 +1048,9 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   // Função para limpar todos os campos do laudo
   const limparCamposLaudo = () => {
     console.log('🧹 Limpando campos do laudo...');
+      isClearingRef.current = true;
+      setTimeout(() => { isClearingRef.current = false; }, 500);
+
     
     previews.forEach(p => URL.revokeObjectURL(p.preview));
     audioPreviews.forEach(p => URL.revokeObjectURL(p.preview));
