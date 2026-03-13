@@ -1,0 +1,211 @@
+version: '3.9'
+
+# ============================================
+# DOCKER COMPOSE - HOMOLOGACAO (www.iamedbr.com)
+# SERVICOS: OCR + TRANSCRICAO + IA
+# ============================================
+
+services:
+  # ================================
+  # OCR SERVICE (Node.js + Tesseract)
+  # ================================
+  ocr:
+    build:
+      context: ./OCR
+      dockerfile: Dockerfile
+    image: ic-medico-ocr:latest
+    container_name: ic-medico-ocr
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+    volumes:
+      - ocr_uploads:/app/uploads
+      - ocr_temp:/tmp/ocr
+    ports:
+      - "8000:8000"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-ocr.rule=Host(`ocr.iamedbr.com`) || ((Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`)))"
+      - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
+      - "traefik.http.routers.iamed-ocr.tls=true"
+      - "traefik.http.routers.iamed-ocr.priority=200"
+      - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
+
+  # ================================
+  # TRANSCRICAO SERVICE (Python FastAPI)
+  # ================================
+  transcricao:
+    build:
+      context: ./Transcricao
+      dockerfile: Dockerfile
+    image: ic-medico-transcricao:latest
+    container_name: ic-medico-transcricao
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8300
+    volumes:
+      - transcricao_uploads:/app/uploads
+      - transcricao_models:/app/models
+    ports:
+      - "8300:8300"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+      - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
+      - "traefik.http.routers.iamed-transcricao.tls=true"
+      - "traefik.http.routers.iamed-transcricao.priority=190"
+      - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
+
+  # ================================
+  # IA SERVICE (Python FastAPI)
+  # ================================
+  ia:
+    build:
+      context: ./IA_IC
+      dockerfile: Dockerfile
+    image: ic-medico-ia:latest
+    container_name: ic-medico-ia
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8200
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DB_HOST=ic-medico-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ia_models:/app/models
+      - ia_data:/app/data
+    ports:
+      - "8200:8200"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
+      - "traefik.http.routers.iamed-ia.entrypoints=websecure"
+      - "traefik.http.routers.iamed-ia.tls=true"
+      - "traefik.http.routers.iamed-ia.priority=180"
+      - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
+
+  # ================================
+  # BACKEND SERVICE (FastAPI + PostgreSQL)
+  # ================================
+  backend:
+    build:
+      context: ./backend/models/Database
+      dockerfile: Dockerfile
+    image: ic-medico-backend:latest
+    container_name: ic-medico-backend
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8100
+      - DB_HOST=ic-medico-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - OCR_SERVICE_URL=http://ocr:8000
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "8100:8100"
+    networks:
+      - ic-medico-network
+      - dokploy-network
+      - iamedbr-bancopostgre-g0bax6_postgres-network
+    depends_on:
+      - ocr
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/pacientes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    labels:
+      - "traefik.enable=false"
+
+  # ================================
+  # FRONTEND (React + nginx)
+  # ================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ic-medico-frontend:latest
+    container_name: ic-medico-frontend
+    restart: unless-stopped
+    networks:
+      - ic-medico-network
+      - dokploy-network
+    depends_on:
+      - ocr
+      - ia
+      - transcricao
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
+      - "traefik.http.routers.iamed-frontend.entrypoints=websecure"
+      - "traefik.http.routers.iamed-frontend.tls=true"
+      - "traefik.http.routers.iamed-frontend.priority=100"
+      - "traefik.http.services.iamed-frontend.loadbalancer.server.port=80"
+
+networks:
+  ic-medico-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+  dokploy-network:
+    external: true
+  iamedbr-bancopostgre-g0bax6_postgres-network:
+    external: true
+
+volumes:
+  ocr_uploads:
+    driver: local
+  ocr_temp:
+    driver: local
+  transcricao_uploads:
+    driver: local
+  transcricao_models:
+    driver: local
+  ia_models:
+    driver: local
+  ia_data:
+    driver: local
+  backend_uploads:
+    driver: local
