@@ -1,4 +1,5 @@
 version: '3.9'
+name: ic-medico-homolog
 
 # ============================================
 # DOCKER COMPOSE - HOMOLOGACAO (www.iamedbr.com)
@@ -34,11 +35,12 @@ services:
       start_period: 90s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-ocr.rule=Host(`ocr.iamedbr.com`) || ((Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`)))"
-      - "traefik.http.routers.iamed-ocr.entrypoints=websecure"
-      - "traefik.http.routers.iamed-ocr.tls=true"
-      - "traefik.http.routers.iamed-ocr.priority=200"
-      - "traefik.http.services.iamed-ocr.loadbalancer.server.port=8000"
+      - "traefik.http.routers.iamed-homol-ocr.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && (PathPrefix(`/api/ocr`) || PathPrefix(`/api/rg`))"
+      - "traefik.http.routers.iamed-homol-ocr.entrypoints=websecure"
+      - "traefik.http.routers.iamed-homol-ocr.tls=true"
+      - "traefik.http.routers.iamed-homol-ocr.priority=200"
+      - "traefik.http.routers.iamed-homol-ocr.service=iamed-homol-ocr"
+      - "traefik.http.services.iamed-homol-ocr.loadbalancer.server.port=8000"
 
   # ================================
   # TRANSCRICAO SERVICE (Python FastAPI)
@@ -68,11 +70,12 @@ services:
       start_period: 45s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-transcricao.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
-      - "traefik.http.routers.iamed-transcricao.entrypoints=websecure"
-      - "traefik.http.routers.iamed-transcricao.tls=true"
-      - "traefik.http.routers.iamed-transcricao.priority=190"
-      - "traefik.http.services.iamed-transcricao.loadbalancer.server.port=8300"
+      - "traefik.http.routers.iamed-homol-transcricao.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && (PathPrefix(`/transcrever`) || PathPrefix(`/transcricao`))"
+      - "traefik.http.routers.iamed-homol-transcricao.entrypoints=websecure"
+      - "traefik.http.routers.iamed-homol-transcricao.tls=true"
+      - "traefik.http.routers.iamed-homol-transcricao.priority=190"
+      - "traefik.http.routers.iamed-homol-transcricao.service=iamed-homol-transcricao"
+      - "traefik.http.services.iamed-homol-transcricao.loadbalancer.server.port=8300"
 
   # ================================
   # IA SERVICE (Python FastAPI)
@@ -109,11 +112,12 @@ services:
       start_period: 45s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-ia.rule=(Host(`www.iamedbr.com`) || Host(`iamedbr.com`)) && PathPrefix(`/ia`)"
-      - "traefik.http.routers.iamed-ia.entrypoints=websecure"
-      - "traefik.http.routers.iamed-ia.tls=true"
-      - "traefik.http.routers.iamed-ia.priority=180"
-      - "traefik.http.services.iamed-ia.loadbalancer.server.port=8200"
+      - "traefik.http.routers.iamed-homol-ia.rule=(Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)) && PathPrefix(`/ia`)"
+      - "traefik.http.routers.iamed-homol-ia.entrypoints=websecure"
+      - "traefik.http.routers.iamed-homol-ia.tls=true"
+      - "traefik.http.routers.iamed-homol-ia.priority=180"
+      - "traefik.http.routers.iamed-homol-ia.service=iamed-homol-ia"
+      - "traefik.http.services.iamed-homol-ia.loadbalancer.server.port=8200"
 
   # ================================
   # BACKEND SERVICE (FastAPI + PostgreSQL)
@@ -172,11 +176,12 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.iamed-frontend.rule=Host(`www.iamedbr.com`) || Host(`iamedbr.com`)"
-      - "traefik.http.routers.iamed-frontend.entrypoints=websecure"
-      - "traefik.http.routers.iamed-frontend.tls=true"
-      - "traefik.http.routers.iamed-frontend.priority=100"
-      - "traefik.http.services.iamed-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.iamed-homol-frontend.rule=Host(`www.homol.iamedbr.com`) || Host(`homol.iamedbr.com`)"
+      - "traefik.http.routers.iamed-homol-frontend.entrypoints=websecure"
+      - "traefik.http.routers.iamed-homol-frontend.tls=true"
+      - "traefik.http.routers.iamed-homol-frontend.priority=100"
+      - "traefik.http.routers.iamed-homol-frontend.service=iamed-homol-frontend"
+      - "traefik.http.services.iamed-homol-frontend.loadbalancer.server.port=80"
 
 networks:
   ic-medico-network:
