@@ -14,7 +14,6 @@ services:
       context: ./OCR
       dockerfile: Dockerfile
     image: ic-medico-ocr:latest
-    container_name: ic-medico-ocr
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -23,7 +22,7 @@ services:
       - ocr_uploads:/app/uploads
       - ocr_temp:/tmp/ocr
     ports:
-      - "8000:8000"
+      - "${OCR_PORT_HOMOLOG:-18000}:8000"
     networks:
       - ic-medico-network
       - dokploy-network
@@ -49,7 +48,6 @@ services:
       context: ./Transcricao
       dockerfile: Dockerfile
     image: ic-medico-transcricao:latest
-    container_name: ic-medico-transcricao
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
@@ -58,7 +56,7 @@ services:
       - transcricao_uploads:/app/uploads
       - transcricao_models:/app/models
     ports:
-      - "8300:8300"
+      - "${TRANSCRICAO_PORT_HOMOLOG:-18300}:8300"
     networks:
       - ic-medico-network
       - dokploy-network
@@ -84,7 +82,6 @@ services:
       context: ./IA_IC
       dockerfile: Dockerfile
     image: ic-medico-ia:latest
-    container_name: ic-medico-ia
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
@@ -100,7 +97,7 @@ services:
       - ia_models:/app/models
       - ia_data:/app/data
     ports:
-      - "8200:8200"
+      - "${IA_PORT_HOMOLOG:-18200}:8200"
     networks:
       - ic-medico-network
       - dokploy-network
@@ -126,7 +123,6 @@ services:
       context: ./backend/models/Database
       dockerfile: Dockerfile
     image: ic-medico-backend:latest
-    container_name: ic-medico-backend
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
@@ -141,7 +137,7 @@ services:
     volumes:
       - backend_uploads:/app/uploads
     ports:
-      - "8100:8100"
+      - "${BACKEND_PORT_HOMOLOG:-18100}:8100"
     networks:
       - ic-medico-network
       - dokploy-network
@@ -165,7 +161,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ic-medico-frontend:latest
-    container_name: ic-medico-frontend
     restart: unless-stopped
     networks:
       - ic-medico-network
