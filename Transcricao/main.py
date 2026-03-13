@@ -1,6 +1,7 @@
 import os
 import shutil
-import whisper
+
+from faster_whisper import WhisperModel
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, requests
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,27 +34,34 @@ print("=" * 50 + "\n")
 app = FastAPI()
 
 # --- CORS (OBRIGATÓRIO PARA REACT) ---
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.iamedbr.com",
+    "https://iamedbr.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://iamedbr.com",
-        "https://www.iamedbr.com",
-        "http://iamedbr.com",
-        "http://www.iamedbr.com",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# --- HEALTH CHECK ---
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "transcricao",
+        "timestamp": os.environ.get("TIMESTAMP", "N/A")
+    }
+
 # --- CARREGAMENTO DO MODELO ---
 print("[STATUS] Carregando modelo Whisper (aguarde)...")
 try:
-    model = whisper.load_model("small")
+    model = WhisperModel("small", device="cpu", compute_type="int8")
     print("[STATUS] Modelo carregado!")
 except Exception as e:
     print(f"[ERRO] Falha ao carregar modelo: {e}")
@@ -72,6 +80,7 @@ async def ler_site():
 
 # --- ROTA 2: PROCESSA O AUDIO ---
 @app.post("/transcrever-e-gerar-laudo")
+@app.post("/api/transcricao/transcrever-e-gerar-laudo")
 async def transcrever_e_gerar_laudo(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
@@ -88,25 +97,31 @@ async def transcrever_e_gerar_laudo(
         )
 
         # 1️⃣ Transcrição
-        result = model.transcribe(
+        segments, info = model.transcribe(
             temp_filename,
-            fp16=False,
             language="pt"
         )
-
-        texto = result["text"].strip()
+        
+        texto = " ".join([segment.text for segment in segments]).strip()
 
         if not texto:
             raise Exception("Transcrição vazia")
 
         # 2️⃣ Chama IA de laudo (ASSÍNCRONO)
+        ia_url = os.environ.get("IA_URL", "http://ia:8200")
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
-                "http://127.0.0.1:8200/gerar-laudo",
+                f"{ia_url}/gerar-laudo",
                 json={ "sintomas": texto }
             )
 
-        response.raise_for_status()
+        if response.status_code != 200:
+            ia_body = response.text
+            print(f"❌ IA retornou {response.status_code}: {ia_body}")
+            return JSONResponse(
+                status_code=500,
+                content={ "detail": f"IA erro {response.status_code}: {ia_body[:1000]}" }
+            )
         laudo = response.json()
 
         # 3️⃣ Retorna só o laudo

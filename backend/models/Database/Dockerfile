@@ -2,22 +2,25 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar dependências do sistema
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
+# Instala dependências do sistema (psycopg2 precisa de libpq)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements e instalar dependências
+# Instala dependências Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
-COPY app/ ./app/
-COPY uploads/ ./uploads/
+# Copia código da aplicação
+COPY . .
 
-# Expor porta
+# Garante que o diretório de uploads existe
+RUN mkdir -p uploads
+
 EXPOSE 8100
 
-# Comando para iniciar
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8100/api/pacientes || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100", "--proxy-headers", "--forwarded-allow-ips", "*"]

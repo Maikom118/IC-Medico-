@@ -1,12 +1,12 @@
 import datetime
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from requests import Session
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import Audio, LaudoPaciente, LaudoPaciente
+from app.models import Audio, LaudoPaciente
 import os
-import shutil
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 
 router = APIRouter(prefix="/audios", tags=["Áudios"])
@@ -68,6 +68,7 @@ def upload_audio_laudo(
 @router.get("/laudos/{laudo_id}")
 def listar_audios_laudo(
     laudo_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     audios = (
@@ -81,7 +82,7 @@ def listar_audios_laudo(
         {
             "id": a.id,
             "laudo_id": a.laudo_id,
-            "url": f"https://iamedbr.com/{a.caminho_arquivo.replace('\\', '/')}",
+            "url": str(request.base_url) + Path(a.caminho_arquivo).as_posix(),
             "duracao": a.duracao,
             "data_upload": a.data_upload,
         }

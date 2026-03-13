@@ -1,13 +1,17 @@
 
-  import { defineConfig } from 'vite';
-  import react from '@vitejs/plugin-react-swc';
-  import path from 'path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import path from 'path';
 
-  export default defineConfig({
-    plugins: [react()],
-    base: '/',
-    resolve: {
-      extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+export default defineConfig({
+  plugins: [react()],
+  base: '/',
+  define: {
+    // Properly define NODE_ENV for the build
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
         'vaul@1.1.2': 'vaul',
         'sonner@2.0.3': 'sonner',

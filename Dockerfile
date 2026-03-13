@@ -21,7 +21,7 @@ FROM nginx:alpine
 # Copiar build para nginx
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Copiar configuração nginx
+# Copiar configuração nginx — v2026.03.06
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

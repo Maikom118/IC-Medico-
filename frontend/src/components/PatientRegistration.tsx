@@ -3,10 +3,12 @@ import { toast } from "sonner";
 import { Camera, Upload, X, Edit, Trash2, Save, Plus, User, FileText, Calendar, CreditCard, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { CameraRG } from "./CameraRG";
 import {
+  listarPacientes,
   criarPaciente,
   atualizarPaciente,
   deletarPaciente
 } from "../../api/pacienteservices";
+import { API_CONFIG } from '../config/api.config';
 
 
 // import { Buffer } from 'buffer'; // Importing Buffer from 'buffer' only if needed
@@ -93,17 +95,43 @@ async function sendRGToOCR() {
   console.log('📤 Enviando para OCR:', file, file instanceof File);
 
   const formDataReq = new FormData();
-  formDataReq.append('imagem', file);
+  formDataReq.append('image', file);
 
   try {
-    const response = await fetch('https://iamedbr.com/api/ocr', {
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/ocr`, {
       method: 'POST',
       body: formDataReq
     });
 
+    // Check if response is OK first
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type');
+      let errorMessage = `HTTP ${response.status}`;
+      
+      // Try to parse error response based on content type
+      if (contentType?.includes('application/json')) {
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.erro || errorData.message || errorMessage;
+        } catch (e) {
+          console.warn('Could not parse error JSON:', e);
+        }
+      } else {
+        // For non-JSON responses (HTML error pages)
+        try {
+          const text = await response.text();
+          errorMessage = text.slice(0, 100) || errorMessage;
+        } catch (e) {
+          console.warn('Could not read error response:', e);
+        }
+      }
+      
+      throw new Error(`OCR Service error: ${errorMessage}`);
+    }
+
     const result = await response.json();
 
-    if (!response.ok || result.status !== 'sucesso') {
+    if (result.status !== 'sucesso') {
       throw new Error(result.erro || 'Erro OCR');
     }
 
@@ -121,7 +149,8 @@ async function sendRGToOCR() {
 
   } catch (err) {
     console.error('❌ OCR erro:', err);
-    toast.error('Erro ao processar OCR');
+    const errorMsg = err instanceof Error ? err.message : 'Erro ao processar OCR';
+    toast.error(errorMsg);
   }
 }
 
@@ -133,7 +162,7 @@ async function sendRGToOCR() {
      ========================= */
   async function fetchRGFromAPI() {
   try {
-    const response = await fetch('https://iamedbr.com/api/rg/ultimo');
+    const response = await fetch(`${API_CONFIG.OCR_URL}/api/rg/ultimo`);
     if (!response.ok) return;
 
     const result = await response.json();
@@ -272,6 +301,18 @@ const fromApiPaciente = (api: any): Patient => ({
   rgPhoto: api.foto_rg_base64,
   registrationDate: api.data_cadastro ?? new Date().toISOString(),
 });
+
+  useEffect(() => {
+    listarPacientes()
+      .then((data) => {
+        const mapped = (data ?? []).map(fromApiPaciente);
+        setPatients(mapped);
+      })
+      .catch((error) => {
+        console.error('Erro ao buscar pacientes', error);
+        toast.error('Erro ao carregar pacientes');
+      });
+  }, []);
 
 
 

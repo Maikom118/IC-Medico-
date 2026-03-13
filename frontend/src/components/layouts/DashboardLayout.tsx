@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import SideBar from "../Sidebar/index";
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
+import { clearAuthUser, getAuthUser } from "../../utils/auth";
 
 /*
   DashboardLayout
@@ -17,12 +18,20 @@ import { Menu } from "lucide-react";
 */
 
 export default function DashboardLayout() {
+  const navigate = useNavigate();
+  const user = getAuthUser();
+  const isSecretaria = user?.role === "secretaria";
   // Controla se a sidebar está aberta ou fechada
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const showSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
-  }
+  };
 
+
+  const handleLogout = () => {
+    clearAuthUser();
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -43,10 +52,10 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm font-medium">
-                Dr. João Silva
+                {user?.name ?? "Usuário"}
               </p>
               <p className="text-xs text-gray-500">
-                Radiologista
+                {isSecretaria ? "Secretária" : "Médico"}
               </p>
             </div>
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -59,6 +68,13 @@ export default function DashboardLayout() {
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Menu size={24} />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Sair"
+          >
+            <LogOut size={20} />
           </button>
         </header>
 
@@ -79,29 +95,5 @@ export default function DashboardLayout() {
 
       </div>
     </div>
-  );
-}
-
-/*
-  NavButton
-
-  Componente reutilizável para os botões da sidebar.
-  Recebe:
-
-  - icon: ícone do lucide
-  - text: texto do botão
-  - onClick: função de navegação
-
-  Isso evita repetição de código na sidebar.
-*/
-function NavButton({ icon, text, onClick }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500 transition"
-    >
-      {icon}
-      <span>{text}</span>
-    </button>
   );
 }

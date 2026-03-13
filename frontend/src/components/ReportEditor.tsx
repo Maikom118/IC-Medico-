@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { AudioRecorder } from "./AudioRecorder";
+import { API_CONFIG } from '../config/api.config';
 
 
 /*
@@ -98,6 +99,7 @@ const [audioFiles, setAudioFiles] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+    const isClearingRef = useRef(false);
   const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
 const [recordedAudioDuration, setRecordedAudioDuration] = useState<number>(0);
   
@@ -179,7 +181,7 @@ useEffect(() => {
   if (!laudoId) return;
 
   const fetchExames = async () => {
-    const res = await fetch(`https://iamedbr.com/exames/laudos/${laudoId}/exames`);
+    const res = await fetch(`${API_CONFIG.BACKEND_URL}/exames/laudos/${laudoId}/exames`);
     if (!res.ok) return;
 
     const data: ExameDto[] = await res.json();
@@ -225,11 +227,11 @@ useEffect(() => {
     setSelectedLaudoFromList(null);
 
     // Buscar todos os laudos do paciente
-    fetch(`https://iamedbr.com/laudos/paciente/${selectedPatientLocal.id}/todos`)
+    fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}/todos`)
       .then(async res => {
         if (!res.ok) {
           // Se não existir endpoint /todos, tentar o antigo
-          const oldRes = await fetch(`https://iamedbr.com/laudos/paciente/${selectedPatientLocal.id}`);
+          const oldRes = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}`);
           if (!oldRes.ok) return [];
           const singleLaudo = await oldRes.json();
           return singleLaudo ? [singleLaudo] : [];
@@ -257,7 +259,7 @@ useEffect(() => {
 
 
  useEffect(() => {
-  fetch("https://iamedbr.com/pacientes")
+  fetch(`${API_CONFIG.BACKEND_URL}/pacientes`)
     .then(res => {
       if (!res.ok) throw new Error("Erro ao buscar pacientes");
       return res.json();
@@ -268,7 +270,7 @@ useEffect(() => {
 
 
  useEffect(() => {
-  fetch("https://iamedbr.com/laudos/tipos")
+  fetch(`${API_CONFIG.BACKEND_URL}/laudos/tipos`)
     .then(res => res.json())
     .then(data => setCategorias(data))
     .catch(err => console.error("Erro ao buscar categorias", err));
@@ -307,7 +309,7 @@ useEffect(() => {
 async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
   try {
     const response = await fetch(
-      `https://iamedbr.com/audios/laudos/${laudoId}`
+      `${API_CONFIG.BACKEND_URL}/audios/laudos/${laudoId}`
     );
 
     if (!response.ok) {
@@ -325,7 +327,7 @@ async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
 // Função para carregar um laudo específico
 const carregarLaudo = async (laudoId: number) => {
   try {
-    const response = await fetch(`https://iamedbr.com/laudos/${laudoId}`);
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/${laudoId}`);
     if (!response.ok) {
       throw new Error("Erro ao buscar laudo");
     }
@@ -356,6 +358,15 @@ const carregarLaudo = async (laudoId: number) => {
 
 //Salvar Tudo (Laudo, Audio, Exames)
 const handleSalvarTudo = async () => {
+  // Guard: se não há tipo nem conteúdo, não há nada para salvar (evita salvas espúrias)
+  if (isClearingRef.current) {
+    console.log("ℹ️ Formulário recém-limpo, ignorando salvar espúrio");
+    return;
+  }
+  if (!selectedTipoLaudoId || !reportContent?.trim()) {
+    console.log("ℹ️ Campos obrigatórios ausentes, abortando silenciosamente");
+    return;
+  }
   console.log("🚀 Iniciando salvar tudo");
 
   // 1️⃣ Salvar laudo
@@ -396,7 +407,7 @@ const handleSaveExames = async (laudoId: number, files: File[]) => {
   formData.append("descricao", "Imagem do exame");
 
   try {
-    const res = await fetch(`https://iamedbr.com/exames/laudos/${laudoId}/exames`, {
+    const res = await fetch(`${API_CONFIG.BACKEND_URL}/exames/laudos/${laudoId}/exames`, {
       method: "POST",
       body: formData,
     });
@@ -435,7 +446,7 @@ const handleSaveAudio = async (laudoId: number) => {
   formData.append("audio", recordedAudioBlob, "audio.webm");
 
   const response = await fetch(
-    `https://iamedbr.com/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
+    `${API_CONFIG.BACKEND_URL}/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
     {
       method: "POST",
       body: formData,
@@ -482,8 +493,8 @@ const handleSaveReport = async (): Promise<number | null> => {
 
     const response = await fetch(
       isUpdate
-        ? `https://iamedbr.com/laudos/paciente/${currentReportId}`
-        : `https://iamedbr.com/laudos/paciente`,
+        ? `${API_CONFIG.BACKEND_URL}/laudos/paciente/${currentReportId}`
+        : `${API_CONFIG.BACKEND_URL}/laudos/paciente`,
       {
         method: isUpdate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -577,7 +588,7 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 const removeBackendExame = async (exameId: number) => {
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`https://iamedbr.com/exames/${exameId}`, {
+      const response = await fetch(`${API_CONFIG.BACKEND_URL}/exames/${exameId}`, {
         method: 'DELETE',
       });
 
@@ -794,7 +805,7 @@ mediaRecorder.onstop = () => {
   const removeBackendAudio = async (audioId: number) => {
     const confirmDelete = async () => {
       try {
-        const response = await fetch(`https://iamedbr.com/audios/${audioId}`, {
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/audios/${audioId}`, {
           method: 'DELETE',
         });
 
@@ -838,6 +849,7 @@ mediaRecorder.onstop = () => {
   };
 
   // Transcrever áudio do backend
+// Transcrever áudio do backend
   const transcribeBackendAudio = async (audioUrl: string, audioId: number) => {
     try {
       setIsTranscribing(true);
@@ -856,9 +868,12 @@ mediaRecorder.onstop = () => {
           type: audioBlob.type || 'audio/webm',
         })
       );
+      
+      // ⚠️ AQUI ESTÁ A MÁGICA 1: Enviando o tipo do exame selecionado!
+      formData.append("tipo_exame", reportType || "Geral");
 
       const response = await fetch(
-        'https://iamedbr.com/transcrever-e-gerar-laudo',
+        API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
         {
           method: 'POST',
           body: formData,
@@ -866,7 +881,9 @@ mediaRecorder.onstop = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Erro na API');
+        const errBody = await response.text().catch(() => '');
+        console.error('❌ Transcrição HTTP', response.status, errBody);
+        throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
       }
 
       const data = await response.json();
@@ -878,7 +895,9 @@ mediaRecorder.onstop = () => {
 
       setTranscriptionProgress('Gerando laudo médico...');
 
-      const textoLaudo = `
+      // ⚠️ AQUI ESTÁ A MÁGICA 2: Pegando o laudo estruturado do RAG!
+      // Se por algum motivo o laudo_estruturado falhar, ele usa o formato antigo como fallback de segurança
+      const textoLaudo = laudo.laudo_estruturado_completo || `
 HIPÓTESE DIAGNÓSTICA:
 ${laudo.diagnostico_hipotese}
 
@@ -908,7 +927,6 @@ CID SUGERIDO: ${laudo.cid_sugerido}
       setTimeout(() => setAudioError(''), 10000);
     }
   };
-
 //Slavar Audio no banco
 const uploadAudioToBackend = async (audioBlob: Blob) => {
   if (!laudoId) {
@@ -920,7 +938,7 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
   formData.append("file", audioBlob, "gravacao.webm");
 
   const response = await fetch(
-    `https://iamedbr.com/laudos/${laudoId}/audio`,
+    `${API_CONFIG.BACKEND_URL}/laudos/${laudoId}/audio`,
     {
       method: "POST",
       body: formData,
@@ -937,47 +955,54 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
   // Função para transcrever áudio usando a API FastAPI   
       // 2. Solicitar transcrição
       
-    const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
-  toast.info("Transcrevendo e gerando laudo...");
+    // Função para transcrever áudio usando a API FastAPI   
+  const transcribeAudio = async (audioBlob: Blob, recordingId: string) => {
+    toast.info("Transcrevendo e gerando laudo...");
 
-  try {
-    console.log("CHEGOU ATÉ AQUI");
+    try {
+      console.log("CHEGOU ATÉ AQUI");
 
-    setIsTranscribing(true);
-    setTranscriptionProgress("Enviando áudio para análise...");
+      setIsTranscribing(true);
+      setTranscriptionProgress("Enviando áudio para análise...");
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File([audioBlob], `audio_${recordingId}.webm`, {
-        type: audioBlob.type || "audio/webm",
-      })
-    );
+      const formData = new FormData();
+      formData.append(
+        "file",
+        new File([audioBlob], `audio_${recordingId}.webm`, {
+          type: audioBlob.type || "audio/webm",
+        })
+      );
+      
+      // ⚠️ AQUI ESTÁ A MÁGICA 1: Enviando o tipo do exame selecionado!
+      formData.append("tipo_exame", reportType || "Geral");
 
-    const response = await fetch(
-      "https://iamedbr.com/transcrever-e-gerar-laudo",
-      {
-        method: "POST",
-        body: formData,
+      const response = await fetch(
+        API_CONFIG.getTranscricaoUrl('/transcrever-e-gerar-laudo'),
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => '');
+        console.error('❌ Transcrição HTTP', response.status, errBody);
+        throw new Error(`Erro na API (${response.status}): ${errBody.slice(0, 200)}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Erro na API");
-    }
+      const data = await response.json();
+      console.log("RESPOSTA API:", data);
 
-    const data = await response.json();
-    console.log("RESPOSTA API:", data);
+      const laudo = data.laudo;
 
-    const laudo = data.laudo;
+      if (!laudo) {
+        throw new Error("Laudo não retornado pela IA");
+      }
 
-    if (!laudo) {
-      throw new Error("Laudo não retornado pela IA");
-    }
+      setTranscriptionProgress("Gerando laudo médico...");
 
-    setTranscriptionProgress("Gerando laudo médico...");
-
-    const textoLaudo = `
+      // ⚠️ AQUI ESTÁ A MÁGICA 2: Pegando o laudo estruturado do RAG!
+      const textoLaudo = laudo.laudo_estruturado_completo || `
 HIPÓTESE DIAGNÓSTICA:
 ${laudo.diagnostico_hipotese}
 
@@ -990,28 +1015,27 @@ ${laudo.recomendacoes}
 CID SUGERIDO: ${laudo.cid_sugerido}
 `.trim();
 
-    setReportContent(prev =>
-      prev ? `${prev}\n\n${textoLaudo}` : textoLaudo
-    );
+      setReportContent(prev =>
+        prev ? `${prev}\n\n${textoLaudo}` : textoLaudo
+      );
 
-    setIsTranscribing(false);
-    setTranscriptionProgress("");
-    console.log("LAUDO INSERIDO COM SUCESSO");
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
+      console.log("LAUDO INSERIDO COM SUCESSO");
 
-  } catch (error) {
-    console.error("Erro ao gerar laudo:", error);
+    } catch (error) {
+      console.error("Erro ao gerar laudo:", error);
 
-    setIsTranscribing(false);
-    setTranscriptionProgress("");
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
 
-    setAudioError(
-      "❌ Erro ao gerar o laudo a partir do áudio. Verifique as APIs."
-    );
+      setAudioError(
+        "❌ Erro ao gerar o laudo a partir do áudio. Verifique as APIs."
+      );
 
-    setTimeout(() => setAudioError(""), 10000);
-  }
-};
-
+      setTimeout(() => setAudioError(""), 10000);
+    }
+  };
 
 
 
@@ -1024,6 +1048,9 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   // Função para limpar todos os campos do laudo
   const limparCamposLaudo = () => {
     console.log('🧹 Limpando campos do laudo...');
+      isClearingRef.current = true;
+      setTimeout(() => { isClearingRef.current = false; }, 500);
+
     
     previews.forEach(p => URL.revokeObjectURL(p.preview));
     audioPreviews.forEach(p => URL.revokeObjectURL(p.preview));
@@ -1060,15 +1087,14 @@ CID SUGERIDO: ${laudo.cid_sugerido}
   const handleCreateNewReport = () => {
     console.log('🔵 handleCreateNewReport chamado');
 
-    // Verificar se há conteúdo não salvo
+    // Verificar se há conteúdo local não salvo
+    // Nota: `exames` e `audios` já estão persistidos no banco — não contam como não salvos
     const temConteudo = !!(
       reportContent ||
       reportType ||
       previews.length > 0 ||
       audioPreviews.length > 0 ||
-      audioRecordings.length > 0 ||
-      audios.length > 0 ||
-      exames.length > 0
+      audioRecordings.length > 0
     );
 
     console.log('Tem conteúdo não salvo?', temConteudo);

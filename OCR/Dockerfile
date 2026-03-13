@@ -1,24 +1,36 @@
+# ===========================================
+# OCR SERVICE - Node.js + Tesseract
+# ===========================================
 FROM node:20-alpine
 
-# Instalar tesseract-ocr
+# Instalar dependências do sistema
 RUN apk add --no-cache \
     tesseract-ocr \
-    tesseract-ocr-data-por
+    tesseract-ocr-data-por \
+    curl \
+    bash
 
+# Criar diretório da aplicação
 WORKDIR /app
 
-# Copiar package.json e instalar dependências
+# Copiar arquivos de dependências
 COPY package*.json ./
+
+# Instalar dependências do Node
 RUN npm ci --only=production
 
-# Copiar código do OCR
+# Copiar código da aplicação
 COPY . .
 
-# Copiar dados do tesseract (português)
-
+# Criar diretórios necessários
+RUN mkdir -p /app/uploads /tmp/ocr /var/log/ocr
 
 # Expor porta
 EXPOSE 8000
 
-# Iniciar serviço
-CMD ["node", "server.js"]
+# Health check endpoint - aumentar timeout para dar tempo de inicializar tesseract
+HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Comando para iniciar o servidor com logging
+CMD ["node", "--max-old-space-size=2048", "ocr-limpo.js"]
