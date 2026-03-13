@@ -26,6 +26,8 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "https://www.iamedbr.com",  # Produção
     "https://iamedbr.com",
+    "https://www.homol.iamedbr.com",  # Homologação
+    "https://homol.iamedbr.com",
 ]
 
 # Em desenvolvimento, permitir qualquer origem
