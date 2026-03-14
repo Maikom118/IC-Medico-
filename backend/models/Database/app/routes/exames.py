@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException,  Request, Upl
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Audio, Exame, LaudoPaciente
+from app.routes.auth import TokenUser, get_current_medico
 import os
 from pathlib import Path
 
@@ -22,6 +23,17 @@ def get_db():
         db.close()
 
 
+def _obter_laudo_do_medico(db: Session, laudo_id: int, medico_id: int) -> LaudoPaciente:
+    laudo = (
+        db.query(LaudoPaciente)
+        .filter(LaudoPaciente.id == laudo_id, LaudoPaciente.medico_id == medico_id)
+        .first()
+    )
+    if not laudo:
+        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    return laudo
+
+
 
 UPLOAD_DIR = "uploads/exames"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -30,8 +42,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def listar_exames_laudo(
     laudo_id: int,
     request: Request,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
+    _obter_laudo_do_medico(db, laudo_id, current_user.id)
     exames = db.query(Exame).filter(Exame.laudo_id == laudo_id).all()
 
     return [
@@ -47,8 +61,10 @@ def listar_exames_laudo(
 def listar_exames_laudo(
     laudo_id: int,
     request: Request,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
+    _obter_laudo_do_medico(db, laudo_id, current_user.id)
     exames = db.query(Exame).filter(Exame.laudo_id == laudo_id).all()
 
     return [
@@ -69,14 +85,13 @@ async def upload_exames_laudo(
     tipo: str = Form("Exame"),
     descricao: str = Form(None),
     request: Request = None,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
     """Upload de múltiplas imagens de exames para um laudo"""
     
     # Verificar se o laudo existe
-    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    _obter_laudo_do_medico(db, laudo_id, current_user.id)
     
     exames_salvos = []
     
@@ -117,6 +132,7 @@ async def upload_exames_laudo(
 @router.delete("/{exame_id}")
 def deletar_exame(
     exame_id: int,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
     """Deletar uma imagem de exame"""
@@ -124,6 +140,8 @@ def deletar_exame(
     exame = db.query(Exame).filter(Exame.id == exame_id).first()
     if not exame:
         raise HTTPException(status_code=404, detail="Exame não encontrado")
+
+    _obter_laudo_do_medico(db, exame.laudo_id, current_user.id)
     
     # Deletar arquivo do disco
     if os.path.exists(exame.caminho_arquivo):

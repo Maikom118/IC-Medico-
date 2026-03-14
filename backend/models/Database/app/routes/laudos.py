@@ -7,6 +7,7 @@ from app.models import LaudoBase, TipoConteudoLaudo, TipoLaudo
 from app.models import LaudoPaciente, Paciente
 from app.schemas import LaudoResponse, TipoLaudoCreate
 from app.schemas import LaudoPacienteCreate, LaudoPacienteResponse
+from app.routes.auth import TokenUser, get_current_medico
 import os
 import shutil
 from fastapi.responses import FileResponse
@@ -21,6 +22,17 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _obter_laudo_do_medico(db: Session, laudo_id: int, medico_id: int) -> LaudoPaciente:
+    laudo = (
+        db.query(LaudoPaciente)
+        .filter(LaudoPaciente.id == laudo_id, LaudoPaciente.medico_id == medico_id)
+        .first()
+    )
+    if not laudo:
+        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    return laudo
 
 
 # 🔹 READ – Visualizar PDF do Laudo Base
@@ -112,10 +124,12 @@ def listar_tipos_laudo(db: Session = Depends(get_db)):
 @router.post("/paciente", status_code=201, response_model=LaudoPacienteResponse) #lembrar de trocar
 def criar_laudo_paciente(
     data: LaudoPacienteCreate,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db)
 ):
     novo = LaudoPaciente(
         paciente_id=data.paciente_id,
+        medico_id=current_user.id,
         tipo_laudo_id=data.tipo_laudo_id,
         conteudo=data.conteudo,
         status=data.status,
@@ -130,10 +144,17 @@ def criar_laudo_paciente(
 
 # 🔹 READ – Todos os Laudos do Paciente
 @router.get("/paciente/{paciente_id}/todos")
-def obter_todos_laudos_paciente(paciente_id: int, db: Session = Depends(get_db)):
+def obter_todos_laudos_paciente(
+    paciente_id: int,
+    current_user: TokenUser = Depends(get_current_medico),
+    db: Session = Depends(get_db),
+):
     laudos = (
         db.query(LaudoPaciente)
-        .filter(LaudoPaciente.paciente_id == paciente_id)
+        .filter(
+            LaudoPaciente.paciente_id == paciente_id,
+            LaudoPaciente.medico_id == current_user.id,
+        )
         .order_by(LaudoPaciente.criado_em.desc())
         .all()
     )
@@ -157,10 +178,17 @@ def obter_todos_laudos_paciente(paciente_id: int, db: Session = Depends(get_db))
 
 # 🔹 READ – Último Laudo do Paciente (compatibilidade)
 @router.get("/paciente/{paciente_id}")
-def obter_laudo_paciente(paciente_id: int, db: Session = Depends(get_db)):
+def obter_laudo_paciente(
+    paciente_id: int,
+    current_user: TokenUser = Depends(get_current_medico),
+    db: Session = Depends(get_db),
+):
     laudo = (
         db.query(LaudoPaciente)
-        .filter(LaudoPaciente.paciente_id == paciente_id)
+        .filter(
+            LaudoPaciente.paciente_id == paciente_id,
+            LaudoPaciente.medico_id == current_user.id,
+        )
         .order_by(LaudoPaciente.criado_em.desc())
         .first()
     )
@@ -174,9 +202,13 @@ class StatusUpdate(BaseModel):
 
 # 🔹 READ – Todos os Laudos (dashboard)
 @router.get("/todos")
-def listar_todos_laudos(db: Session = Depends(get_db)):
+def listar_todos_laudos(
+    current_user: TokenUser = Depends(get_current_medico),
+    db: Session = Depends(get_db),
+):
     laudos = (
         db.query(LaudoPaciente)
+        .filter(LaudoPaciente.medico_id == current_user.id)
         .order_by(LaudoPaciente.criado_em.desc())
         .all()
     )
@@ -203,12 +235,10 @@ def listar_todos_laudos(db: Session = Depends(get_db)):
 def atualizar_status_laudo(
     laudo_id: int,
     data: StatusUpdate,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db)
 ):
-    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
-
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    laudo = _obter_laudo_do_medico(db, laudo_id, current_user.id)
 
     laudo.status = data.status
     db.commit()
@@ -219,12 +249,12 @@ def atualizar_status_laudo(
 
 # 🔹 READ – Laudo por ID
 @router.get("/{laudo_id}")
-def obter_laudo_por_id(laudo_id: int, db: Session = Depends(get_db)):
-    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
-    
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
-    
+def obter_laudo_por_id(
+    laudo_id: int,
+    current_user: TokenUser = Depends(get_current_medico),
+    db: Session = Depends(get_db),
+):
+    laudo = _obter_laudo_do_medico(db, laudo_id, current_user.id)
     return laudo
 
 
@@ -233,12 +263,10 @@ def obter_laudo_por_id(laudo_id: int, db: Session = Depends(get_db)):
 def atualizar_laudo_paciente(
     laudo_id: int,
     data: LaudoPacienteCreate,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db)
 ):
-    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
-    
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    laudo = _obter_laudo_do_medico(db, laudo_id, current_user.id)
     
     # Atualizar campos
     laudo.paciente_id = data.paciente_id
@@ -257,12 +285,10 @@ def atualizar_laudo_paciente(
 @router.get("/paciente/{laudo_id}/pdf")
 def baixar_pdf(
     laudo_id: int,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db)
 ):
-    laudo = db.query(LaudoPaciente).get(laudo_id)
-
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    laudo = _obter_laudo_do_medico(db, laudo_id, current_user.id)
 
     return Response(
         content=laudo.pdf,

@@ -101,6 +101,7 @@ class LaudoPaciente(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     paciente_id = Column(Integer, ForeignKey("paciente.id"), nullable=False)
+    medico_id = Column(Integer, ForeignKey("medico.id"), nullable=True, index=True)
     tipo_laudo_id = Column(Integer, ForeignKey("tipo_laudo.id"), nullable=False)
     status = Column(String(50), nullable=False)
     conteudo = Column(Text, nullable=False)
@@ -108,6 +109,7 @@ class LaudoPaciente(Base):
     criado_em = Column(DateTime, server_default=func.now())
 
     paciente = relationship("Paciente", back_populates="laudos_paciente")
+    medico = relationship("Medico", back_populates="laudos_paciente")
     tipo_laudo = relationship("TipoLaudo", back_populates="laudos_paciente")
 
     audios = relationship(
@@ -189,6 +191,8 @@ class Medico(Base):
     senha_hash = Column(String(255), nullable=False)
     criado_em = Column(DateTime, server_default=func.now())
     atualizado_em = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    laudos_paciente = relationship("LaudoPaciente", back_populates="medico")
 
 
 class Secretaria(Base):

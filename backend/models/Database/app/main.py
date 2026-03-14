@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
+from sqlalchemy import inspect, text
 
 from app.models import Paciente, TipoLaudo, LaudoBase, LaudoPaciente, Audio, LaudoChunks, Medico, Secretaria
 
@@ -165,5 +166,22 @@ async def rg_ultimo_proxy():
 
 
 
+def _ensure_laudo_medico_column() -> None:
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+
+    if "laudo_paciente" not in table_names:
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("laudo_paciente")}
+
+    if "medico_id" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE laudo_paciente ADD COLUMN medico_id INTEGER"))
+
+
 Base.metadata.create_all(bind=engine)
+_ensure_laudo_medico_column()
 

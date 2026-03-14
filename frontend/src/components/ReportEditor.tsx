@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { AudioRecorder } from "./AudioRecorder";
 import { API_CONFIG } from '../config/api.config';
+import { getAuthHeaders } from '../utils/auth';
 
 
 /*
@@ -77,6 +78,7 @@ type ExamePreview = {
 
 
 export  function ReportEditor({ selectedPatient }: ReportEditorProps) {
+  const authHeaders = getAuthHeaders();
   const [reportContent, setReportContent] = useState('');
   const [reportType, setReportType] = useState<string>('');
 const [laudoTexto, setLaudoTexto] = useState('');
@@ -181,7 +183,11 @@ useEffect(() => {
   if (!laudoId) return;
 
   const fetchExames = async () => {
-    const res = await fetch(`${API_CONFIG.BACKEND_URL}/exames/laudos/${laudoId}/exames`);
+    const res = await fetch(`${API_CONFIG.BACKEND_URL}/exames/laudos/${laudoId}/exames`, {
+      headers: {
+        ...authHeaders,
+      },
+    });
     if (!res.ok) return;
 
     const data: ExameDto[] = await res.json();
@@ -227,11 +233,19 @@ useEffect(() => {
     setSelectedLaudoFromList(null);
 
     // Buscar todos os laudos do paciente
-    fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}/todos`)
+    fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}/todos`, {
+      headers: {
+        ...authHeaders,
+      },
+    })
       .then(async res => {
         if (!res.ok) {
           // Se não existir endpoint /todos, tentar o antigo
-          const oldRes = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}`);
+          const oldRes = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente/${selectedPatientLocal.id}`, {
+            headers: {
+              ...authHeaders,
+            },
+          });
           if (!oldRes.ok) return [];
           const singleLaudo = await oldRes.json();
           return singleLaudo ? [singleLaudo] : [];
@@ -309,7 +323,12 @@ useEffect(() => {
 async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.BACKEND_URL}/audios/laudos/${laudoId}`
+      `${API_CONFIG.BACKEND_URL}/audios/laudos/${laudoId}`,
+      {
+        headers: {
+          ...authHeaders,
+        },
+      }
     );
 
     if (!response.ok) {
@@ -327,7 +346,11 @@ async function fetchAudios(laudoId: number): Promise<AudioDto[]> {
 // Função para carregar um laudo específico
 const carregarLaudo = async (laudoId: number) => {
   try {
-    const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/${laudoId}`);
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/${laudoId}`, {
+      headers: {
+        ...authHeaders,
+      },
+    });
     if (!response.ok) {
       throw new Error("Erro ao buscar laudo");
     }
@@ -409,6 +432,9 @@ const handleSaveExames = async (laudoId: number, files: File[]) => {
   try {
     const res = await fetch(`${API_CONFIG.BACKEND_URL}/exames/laudos/${laudoId}/exames`, {
       method: "POST",
+      headers: {
+        ...authHeaders,
+      },
       body: formData,
     });
 
@@ -449,6 +475,9 @@ const handleSaveAudio = async (laudoId: number) => {
     `${API_CONFIG.BACKEND_URL}/audios/laudos/paciente/${laudoId}/audio?duracao=${recordedAudioDuration}`,
     {
       method: "POST",
+      headers: {
+        ...authHeaders,
+      },
       body: formData,
     }
   );
@@ -497,7 +526,10 @@ const handleSaveReport = async (): Promise<number | null> => {
         : `${API_CONFIG.BACKEND_URL}/laudos/paciente`,
       {
         method: isUpdate ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
         body: JSON.stringify(payload),
       }
     );
@@ -590,6 +622,9 @@ const removeBackendExame = async (exameId: number) => {
     try {
       const response = await fetch(`${API_CONFIG.BACKEND_URL}/exames/${exameId}`, {
         method: 'DELETE',
+        headers: {
+          ...authHeaders,
+        },
       });
 
       if (!response.ok) {
@@ -807,6 +842,9 @@ mediaRecorder.onstop = () => {
       try {
         const response = await fetch(`${API_CONFIG.BACKEND_URL}/audios/${audioId}`, {
           method: 'DELETE',
+          headers: {
+            ...authHeaders,
+          },
         });
 
         if (!response.ok) {
@@ -941,6 +979,9 @@ const uploadAudioToBackend = async (audioBlob: Blob) => {
     `${API_CONFIG.BACKEND_URL}/laudos/${laudoId}/audio`,
     {
       method: "POST",
+      headers: {
+        ...authHeaders,
+      },
       body: formData,
     }
   );

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Audio, LaudoPaciente
+from app.routes.auth import TokenUser, get_current_medico
 import os
 import uuid
 from datetime import datetime
@@ -21,6 +22,17 @@ def get_db():
         db.close()
 
 
+def _obter_laudo_do_medico(db: Session, laudo_id: int, medico_id: int) -> LaudoPaciente:
+    laudo = (
+        db.query(LaudoPaciente)
+        .filter(LaudoPaciente.id == laudo_id, LaudoPaciente.medico_id == medico_id)
+        .first()
+    )
+    if not laudo:
+        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    return laudo
+
+
 UPLOAD_DIR = "uploads/audios"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -30,12 +42,10 @@ def upload_audio_laudo(
     laudo_id: int,
     audio: UploadFile = File(...),
     duracao: int = 0,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
-    # 🔎 verifica se o laudo existe
-    laudo = db.query(LaudoPaciente).filter(LaudoPaciente.id == laudo_id).first()
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado")
+    _obter_laudo_do_medico(db, laudo_id, current_user.id)
 
     # 💾 salva arquivo
     filename = f"{uuid.uuid4()}.webm"
@@ -69,8 +79,11 @@ def upload_audio_laudo(
 def listar_audios_laudo(
     laudo_id: int,
     request: Request,
+    current_user: TokenUser = Depends(get_current_medico),
     db: Session = Depends(get_db),
 ):
+    _obter_laudo_do_medico(db, laudo_id, current_user.id)
+
     audios = (
         db.query(Audio)
         .filter(Audio.laudo_id == laudo_id)

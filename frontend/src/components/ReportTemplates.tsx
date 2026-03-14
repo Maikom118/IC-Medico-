@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Plus, Edit, Trash2, FileText, X, Save } from 'lucide-react';
 import type { ReportTemplate } from '../__App';
 import { API_CONFIG } from '../config/api.config';
+import { getAuthHeaders } from '../utils/auth';
 
 
 type TipoLaudo = {
@@ -42,6 +43,7 @@ export function ReportTemplates({
   onDeleteTemplate,
   onUseTemplate,
 }: ReportTemplatesProps) {
+  const authHeaders = getAuthHeaders();
   // ✅ hooks NO LUGAR CERTO
   const [templates, setTemplates] = useState<Template[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,6 +168,9 @@ for (const pair of formData.entries()) {
 }
   const response = await fetch(`${API_CONFIG.BACKEND_URL}/laudos/paciente`, {
     method: 'POST',
+    headers: {
+      ...authHeaders,
+    },
     body: formData, // ⚠️ SEM headers
   });
 

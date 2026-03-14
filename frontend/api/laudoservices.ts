@@ -1,4 +1,5 @@
 import { API_CONFIG } from '../src/config/api.config';
+import { getAuthHeaders } from '../src/utils/auth';
 
 const API_URL = API_CONFIG.BACKEND_URL;
 
@@ -14,7 +15,11 @@ export interface LaudoDashboard {
 
 // READ – Todos os laudos (para o dashboard)
 export async function listarTodosLaudos(): Promise<LaudoDashboard[]> {
-  const response = await fetch(`${API_URL}/laudos/todos`);
+  const response = await fetch(`${API_URL}/laudos/todos`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
 
   if (!response.ok) {
     const error = await response.text();
@@ -28,7 +33,10 @@ export async function listarTodosLaudos(): Promise<LaudoDashboard[]> {
 export async function atualizarStatusLaudo(laudoId: number, status: string): Promise<void> {
   const response = await fetch(`${API_URL}/laudos/paciente/${laudoId}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify({ status }),
   });
 
